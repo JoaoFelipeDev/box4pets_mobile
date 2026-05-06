@@ -74,7 +74,7 @@
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>MinimumOSVersion</key>
-		<string>13.0</string>
+		<string>15.0</string>
 		<key>NSUserTrackingUsageDescription</key>
 		<string>Para onde você será redirecionado usamos cookies para garantir que você obtenha a melhor experiência em nosso site.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
