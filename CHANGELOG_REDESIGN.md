@@ -244,3 +244,42 @@ Em dev usamos um FIFO em `/tmp/box4pets_cmd` para hot reload (`r`) / restart (`R
 + flutter_localizations:    # SDK
 - syncfusion_flutter_charts: ^22.2.11   # removido (não usado)
 ```
+
+---
+
+# Iteração 3 — Limpeza + Android
+
+## 28. Modal de vídeo de primeira execução
+
+- Removido o popup que aparecia na primeira abertura do app com o vídeo de apresentação (YouTube `O6Xmd1fxfCM`).
+- Limpeza completa:
+  - `lib/src/pages/home/views/components/modal_video.dart` deletado.
+  - `home.dart`: `YoutubePlayerController _controller`, `_modalVideoApresentacao`, chamada no `initState` e dispose do controller — todos removidos.
+  - Pacote `youtube_player_flutter` removido do `pubspec.yaml`.
+- A home agora abre direto. `_checkVersion` (alerta de atualização disponível) continua rodando no startup.
+
+## 29. Android — Gradle memory
+
+- `android/gradle.properties`: `org.gradle.jvmargs` aumentado de `-Xmx1536M` para `-Xmx4g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError`.
+- Motivo: a transformação `JetifyTransform` do Gradle estourava `Java heap space` na primeira build do Android (build falhava em ~9min sem produzir APK).
+
+## 30. Setup Android local
+
+- Repo agora roda no emulador Android (Pixel 8 API 35).
+- Pré-requisito para futuras builds Android no Mac:
+  ```bash
+  export ANDROID_HOME="$HOME/Library/Android/sdk"
+  export PATH="$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator"
+  ```
+  (adicionar isso no `~/.zshrc` para persistir entre sessões).
+- Splash do Android 12+: o sistema operacional **força** o padrão "ícone centralizado num fundo colorido" (não dá pra usar imagem full-bleed estilo iOS). Esperado por design da Google — pode ser refinado depois com `flutter_native_splash` configurando `android_12.image` + `color` se quiser branding mais forte.
+
+---
+
+## Dependências (atualizada)
+
+```yaml
++ flutter_localizations:                # SDK
+- syncfusion_flutter_charts: ^22.2.11   # removido (não usado)
+- youtube_player_flutter: ^9.1.0        # removido (modal apresentação)
+```
