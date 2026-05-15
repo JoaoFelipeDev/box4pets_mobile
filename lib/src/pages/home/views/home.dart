@@ -6,7 +6,6 @@ import 'package:Box4Pets/config/app_color.dart';
 import 'package:Box4Pets/src/pages/destaques/models/blog_model.dart';
 import 'package:Box4Pets/src/pages/home/bloc/app_ativacao_bloc.dart';
 import 'package:Box4Pets/src/pages/home/models/app_ativacao_model.dart';
-import 'package:Box4Pets/src/pages/home/views/components/modal_video.dart';
 import 'package:Box4Pets/src/pages/teste_racas/views/teste_raca.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/view/tracos_doencas.dart';
 import 'package:dio/dio.dart';
@@ -25,7 +24,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../../destaques/views/components/screen_expanded.dart';
 import '../repositories/app_ativacao_repository.dart';
@@ -98,7 +96,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  late final YoutubePlayerController _controller;
   late final AppAtivacaoBloc _appAtivacaoBloc;
   final appAtivacaoRepository = AppAtivacaoRepository();
   final box = GetStorage();
@@ -116,10 +113,6 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: 'O6Xmd1fxfCM',
-      flags: const YoutubePlayerFlags(autoPlay: true, mute: false),
-    );
     _appAtivacaoBloc = AppAtivacaoBloc()..add(AppAtivacaoGetEvent());
     _carouselController = PageController(initialPage: 0);
     _petStripController = ScrollController();
@@ -143,15 +136,11 @@ class _HomeState extends State<Home> {
       _localPhotoPath = savedPhoto;
     }
 
-    Future.delayed(Duration.zero, () {
-      if (box.read('modalVideo') == null) _modalVideoApresentacao();
-      _checkVersion();
-    });
+    Future.delayed(Duration.zero, _checkVersion);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
     _carouselController.dispose();
     _petStripController.dispose();
     super.dispose();
@@ -321,13 +310,6 @@ class _HomeState extends State<Home> {
         ? await getExternalStorageDirectory()
         : await getApplicationDocumentsDirectory();
     return directory!.path;
-  }
-
-  void _modalVideoApresentacao() {
-    showDialog(
-      context: context,
-      builder: (_) => ModalVideo(controller: _controller),
-    );
   }
 
   void _openModalVersion() {

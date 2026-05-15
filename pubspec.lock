@@ -1362,14 +1362,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
-  youtube_player_flutter:
-    dependency: "direct main"
-    description:
-      name: youtube_player_flutter
-      sha256: "77317d420c78a5de4819cd352d050b69542d60fea0b37e0cbf89ebf115076bb9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.1.0"
 sdks:
   dart: ">=3.10.0 <4.0.0"
   flutter: ">=3.38.0"
