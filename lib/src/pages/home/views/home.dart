@@ -1,518 +1,1255 @@
-import 'package:Box4Pets/config/app_color.dart';
-
-import 'package:Box4Pets/src/pages/home/bloc/app_ativacao_bloc.dart';
-import 'package:Box4Pets/src/pages/home/views/components/container_pets_components.dart';
-import 'package:Box4Pets/src/pages/home/views/components/modal_video.dart';
-
-import 'package:carousel_slider/carousel_slider.dart';
-import 'package:dio/dio.dart';
-
-import 'package:flutter/material.dart';
-
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
+
+import 'package:Box4Pets/config/app_color.dart';
+import 'package:Box4Pets/src/pages/destaques/models/blog_model.dart';
+import 'package:Box4Pets/src/pages/home/bloc/app_ativacao_bloc.dart';
+import 'package:Box4Pets/src/pages/home/models/app_ativacao_model.dart';
+import 'package:Box4Pets/src/pages/home/views/components/modal_video.dart';
+import 'package:Box4Pets/src/pages/teste_racas/views/teste_raca.dart';
+import 'package:Box4Pets/src/pages/tracos_doencas/view/tracos_doencas.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:Box4Pets/core/ui/widgets/box_4_pets_loader.dart';
+import 'package:Box4Pets/core/ui/widgets/shimmer.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
 import '../../destaques/views/components/screen_expanded.dart';
 import '../repositories/app_ativacao_repository.dart';
-import 'package:permission_handler/permission_handler.dart';
 
-class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+enum _HomeTab { emAnalise, resultados }
 
-  @override
-  _HomeState createState() => _HomeState();
+class _PetActionData {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _PetActionData({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 }
 
-class _HomeState extends State<Home> {
-  bool modalVideo = false;
-  late YoutubePlayerController _controller;
-  int countAtivacao = 0;
-  final appAtivacaoRepository = AppAtivacaoRepository();
-  final box = GetStorage();
-  String function = '';
-  bool extendButton = false;
-  late final AppAtivacaoBloc _appAtivacaoBloc;
-  @override
-  void initState() {
-    _controller = YoutubePlayerController(
-      initialVideoId: 'O6Xmd1fxfCM', // ID do vídeo do YouTube
-      flags: YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
-      ),
-    );
-    Future.delayed(Duration.zero, () {
-      if (box.read('modalVideo') == null) {
-        modalVideoApresentacao();
-      }
-    });
-    _appAtivacaoBloc = AppAtivacaoBloc();
-    _appAtivacaoBloc.add(AppAtivacaoGetEvent());
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      getVersion();
-    });
-    super.initState();
-  }
-
-  downloadPDF(String id, String name) {
-    _appAtivacaoBloc.add(AppAtivacaoSDownloadPDF(id: id, name: name));
-  }
-
-  getVersion() async {
-    final Response<dynamic> response = await appAtivacaoRepository.getVersion();
-
-    String version = response.data['records'][0]['fields']['Name'];
-    if (box.read('version') != version) {
-      openModalVersion();
-    }
-  }
-
-  _launchURL(String url) async {
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
-  Future<String> getStoragePath() async {
-    Directory? directory;
-    if (Platform.isAndroid) {
-      print('directory android');
-      directory = await getExternalStorageDirectory();
-    } else if (Platform.isIOS) {
-      print('directory IOS');
-      directory = await getApplicationDocumentsDirectory();
-    } else {
-      throw UnsupportedError("Plataforma não suportada");
-    }
-    return directory!.path;
-  }
-
-  Future<void> _launchUrl(String url) async {
-    return showDialog(
-      context: context,
-      builder: (context) {
-        final controller = WebViewController()
-          ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..loadRequest(Uri.parse(url));
-        return Scaffold(
-          appBar: AppBar(
-              title: Text("Navegação Box4Pets"),
-              backgroundColor: AppColor.primary),
-          body: WebViewWidget(controller: controller),
-        );
-      },
-    );
-  }
-
-  modalVideoApresentacao() {
-    return showDialog(
-      context: context,
-      builder: (context) {
-        return ModalVideo(
-          controller: _controller,
-        );
-      },
-    );
-  }
-
-  modalDownloadPDF(List pdfUrl, List name) {
-    return showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Escolha o PDF que deseja baixar'),
-            content: Container(
-              height: 200,
-              width: 200,
-              child: ListView.builder(
-                itemCount: pdfUrl.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(
-                      name[index],
-                      style: TextStyle(color: Colors.blueAccent),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _downloadPDF(pdfUrl[index], name[index]);
-                    },
-                  );
-                },
-              ),
-            ),
-          );
-        });
-  }
-
-  Future<void> _downloadPDF(String pdfUrl, String name) async {
-    await Permission.storage.request();
-    print('downloadPDF');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Download iniciado'),
-      ),
-    );
-
-    final savedDir = await getStoragePath();
-    print('savedDir');
-    final taskId = await FlutterDownloader.enqueue(
-      url: pdfUrl,
-      savedDir: savedDir,
-      fileName: "$name",
-      showNotification: true,
-      openFileFromNotification: true,
-    );
-    print('$savedDir/$name');
-
-    if (taskId != null) {
-      print('$savedDir/$name');
-      await OpenFile.open('$savedDir/$name');
-    }
-  }
-
-  openModalVersion() {
-    return showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-              'Uma atualização recente do Box4Pets está disponível agora!'),
-          actions: [
-            TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text(
-                  'Deixar para depois',
-                  style: TextStyle(color: AppColor.secondary, fontSize: 18),
-                )),
-            TextButton(
-                onPressed: () {
-                  if (Theme.of(context).platform == TargetPlatform.iOS) {
-                    _launchURL(
-                        'https://apps.apple.com/us/app/box4pets/id6467569454?platform=iphone');
-                  } else {
-                    _launchURL(
-                        'https://play.google.com/store/apps/details?id=br.com.box4pets.box_4_pets&pli=1');
-                  }
-                },
-                child: Text(
-                  'Atualizar',
-                  style: TextStyle(color: AppColor.primary, fontSize: 18),
-                ))
-          ],
-        );
-      },
-    );
-  }
+class _GlassCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double borderRadius;
+  final double opacity;
+  final double blur;
+  const _GlassCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(14),
+    this.borderRadius = 22,
+    this.opacity = 0.55,
+    this.blur = 24,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AppAtivacaoBloc, AppAtivacaoState>(
-      bloc: _appAtivacaoBloc,
-      listener: (context, state) {
-        if (state is AppAtivacaoLoaded) {
-          setState(() {
-            countAtivacao = state.appAtivacao.length;
-          });
-        } else if (state is AppDownloadPDF) {
-          modalDownloadPDF(
-              state.downloadPDFModel.url, state.downloadPDFModel.name);
-          // _downloadPDF(state.downloadPDFModel.url, state.downloadPDFModel.name);
-          _appAtivacaoBloc.add(AppAtivacaoGetEvent());
-        }
-      },
-      child: Scaffold(
-        backgroundColor: Color(0xffF6F6F6),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: GestureDetector(
-            onTap: () => FocusScope.of(context).requestFocus(new FocusNode()),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 25,
-                      child: Icon(Icons.person),
-                    ),
-                    const SizedBox(
-                      width: 5,
-                    ),
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.5),
-
-                              blurRadius: 7,
-                              offset:
-                                  Offset(8, 8), // changes position of shadow
-                            ),
-                          ],
-                        ),
-                        child: TextFormField(
-                          onChanged: (value) {
-                            _appAtivacaoBloc.add(
-                                AppAtivacaoGetFilterNameEvent(filter: value));
-                          },
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white,
-                            isDense: true,
-                            hintText: '',
-                            prefixIcon: const Icon(
-                              Icons.search,
-                              color: Colors.grey,
-                              size: 21,
-                            ),
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade400,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(60),
-                              borderSide: const BorderSide(
-                                width: 0,
-                                style: BorderStyle.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(
-                      width: 5,
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 32,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                          backgroundColor: function == 'Aguardando Swab'
-                              ? Color(0xff470D6A)
-                              : Color(0xffD9D9D9),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(23),
-                          ),
-                          side: BorderSide()),
-                      onPressed: () {
-                        _appAtivacaoBloc.add(AppAtivacaoGetFilterEvent(
-                            filter: 'Aguardando Swab'));
-                        setState(() {
-                          FocusScope.of(context).requestFocus(new FocusNode());
-                          if (function == 'Aguardando Swab') {
-                            function = '';
-                            _appAtivacaoBloc.add(AppAtivacaoGetEvent());
-                          } else {
-                            function = 'Aguardando Swab';
-                          }
-                        });
-                      },
-                      child: Text(
-                        'Aguardando',
-                        style: TextStyle(
-                            color: function == 'Aguardando Swab'
-                                ? Colors.white
-                                : Color(0xff470D6A),
-                            fontSize: 12.5),
-                      ),
-                    ),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                          backgroundColor: function == 'Em Análise'
-                              ? Color(0xff470D6A)
-                              : Color(0xffD9D9D9),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(23),
-                          ),
-                          side: BorderSide()),
-                      onPressed: () {
-                        FocusScope.of(context).requestFocus(new FocusNode());
-                        _appAtivacaoBloc.add(
-                            AppAtivacaoGetFilterEvent(filter: ' Em Análise'));
-                        setState(() {
-                          if (function == 'Em Análise') {
-                            function = '';
-                            _appAtivacaoBloc.add(AppAtivacaoGetEvent());
-                          } else {
-                            function = 'Em Análise';
-                          }
-                        });
-                      },
-                      child: Text(
-                        'Em Análise',
-                        style: TextStyle(
-                            color: function == 'Em Análise'
-                                ? Colors.white
-                                : Color(0xff470D6A),
-                            fontSize: 12.5),
-                      ),
-                    ),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                          backgroundColor: function == 'Resultado Liberado'
-                              ? Color(0xff470D6A)
-                              : Color(0xffD9D9D9),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(23),
-                          ),
-                          side: BorderSide()),
-                      onPressed: () {
-                        FocusScope.of(context).requestFocus(new FocusNode());
-                        _appAtivacaoBloc.add(AppAtivacaoGetFilterEvent(
-                            filter: 'Resultado Liberado'));
-                        setState(() {
-                          if (function == 'Resultado Liberado') {
-                            function = '';
-                            _appAtivacaoBloc.add(AppAtivacaoGetEvent());
-                          } else {
-                            function = 'Resultado Liberado';
-                          }
-                        });
-                      },
-                      child: Text(
-                        'Resultados',
-                        style: TextStyle(
-                            color: function == 'Resultado Liberado'
-                                ? Colors.white
-                                : Color(0xff470D6A),
-                            fontSize: 12.5),
-                      ),
-                    )
-                  ],
-                ),
-                GestureDetector(
-                  onTap: () =>
-                      FocusScope.of(context).requestFocus(new FocusNode()),
-                  child: const SizedBox(
-                    height: 42,
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () =>
-                        FocusScope.of(context).requestFocus(new FocusNode()),
-                    child: BlocBuilder<AppAtivacaoBloc, AppAtivacaoState>(
-                      bloc: _appAtivacaoBloc,
-                      builder: (context, state) {
-                        if (state is AppAtivacaoLoaded) {
-                          return ListView.separated(
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(
-                              height: 15,
-                            ),
-                            itemCount: state.appAtivacao.length,
-                            itemBuilder: (context, index) {
-                              return ContainerPetsComponents(
-                                appAtivacao: state.appAtivacao[index],
-                                downloadPDF: downloadPDF,
-                              );
-                            },
-                          );
-                        } else if (state is AppAtivacaoLoading) {
-                          return Center(
-                            child:
-                                LoadingAnimationWidget.horizontalRotatingDots(
-                                    color: AppColor.primary, size: 60),
-                          );
-                        } else {
-                          return Container();
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                countAtivacao < 2
-                    ? Expanded(
-                        child: BlocBuilder<AppAtivacaoBloc, AppAtivacaoState>(
-                          bloc: _appAtivacaoBloc,
-                          builder: (context, state) {
-                            if (state is AppAtivacaoLoaded) {
-                              return CarouselSlider.builder(
-                                options: CarouselOptions(
-                                    autoPlay: true,
-                                    aspectRatio: 2.0,
-                                    enlargeCenterPage: true),
-                                itemCount: state.blog.length,
-                                itemBuilder: (BuildContext context,
-                                        int itemIndex, int pageViewIndex) =>
-                                    InkWell(
-                                  onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ScreenExpanded(
-                                            blog: state.blog[itemIndex],
-                                            tag: state.blog[itemIndex].titulo),
-                                      )),
-                                  child: Container(
-                                    width: 330,
-                                    decoration: BoxDecoration(
-                                      image: DecorationImage(
-                                          image: NetworkImage(state
-                                              .blog[itemIndex].banner[0].url),
-                                          fit: BoxFit.cover),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text(
-                                        state.blog[itemIndex].titulo,
-                                        style: TextStyle(
-                                            color: AppColor.primary,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            } else {
-                              return Container();
-                            }
-                          },
-                        ),
-                      )
-                    : Container(),
-                SizedBox(
-                  height: 100,
-                )
-              ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(opacity),
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.55),
+              width: 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
+          child: child,
         ),
       ),
     );
   }
 }
 
-class TriangleClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.moveTo(0, size.height);
-    path.lineTo(size.width / 12, size.height / 2);
-    path.lineTo(size.width, size.height);
+class Home extends StatefulWidget {
+  final VoidCallback? onProfileRequested;
+  const Home({Key? key, this.onProfileRequested}) : super(key: key);
 
-    path.close();
-    return path;
+  @override
+  _HomeState createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  late final YoutubePlayerController _controller;
+  late final AppAtivacaoBloc _appAtivacaoBloc;
+  final appAtivacaoRepository = AppAtivacaoRepository();
+  final box = GetStorage();
+
+  _HomeTab _selectedTab = _HomeTab.resultados;
+  String _searchQuery = '';
+  int _carouselIndex = 0;
+  int _selectedPetIndex = 0;
+  String _userName = '';
+  String? _localPhotoPath;
+  AppAtivacaoLoaded? _lastLoaded;
+  late final PageController _carouselController;
+  late final ScrollController _petStripController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = YoutubePlayerController(
+      initialVideoId: 'O6Xmd1fxfCM',
+      flags: const YoutubePlayerFlags(autoPlay: true, mute: false),
+    );
+    _appAtivacaoBloc = AppAtivacaoBloc()..add(AppAtivacaoGetEvent());
+    _carouselController = PageController(initialPage: 0);
+    _petStripController = ScrollController();
+
+    final rawUser = box.read('user');
+    if (rawUser is String && rawUser.isNotEmpty) {
+      try {
+        final map = jsonDecode(rawUser) as Map<String, dynamic>;
+        _userName = (map['name'] ??
+                map['Nome'] ??
+                map['Nome completo'] ??
+                '')
+            .toString();
+      } catch (_) {}
+    }
+
+    final savedPhoto = box.read('profile_photo_path');
+    if (savedPhoto is String &&
+        savedPhoto.isNotEmpty &&
+        File(savedPhoto).existsSync()) {
+      _localPhotoPath = savedPhoto;
+    }
+
+    Future.delayed(Duration.zero, () {
+      if (box.read('modalVideo') == null) _modalVideoApresentacao();
+      _checkVersion();
+    });
   }
 
   @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
-    return false;
+  void dispose() {
+    _controller.dispose();
+    _carouselController.dispose();
+    _petStripController.dispose();
+    super.dispose();
+  }
+
+  Future<String> _getStoragePath() async {
+    final directory = Platform.isAndroid
+        ? await getExternalStorageDirectory()
+        : await getApplicationDocumentsDirectory();
+    return directory!.path;
+  }
+
+  Future<void> _downloadPdf(String url, String name) async {
+    await Permission.storage.request();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Download iniciado'),
+        backgroundColor: AppColor.primary,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    final savedDir = await _getStoragePath();
+    final taskId = await FlutterDownloader.enqueue(
+      url: url,
+      savedDir: savedDir,
+      fileName: name,
+      showNotification: true,
+      openFileFromNotification: true,
+    );
+    if (taskId != null) {
+      await OpenFile.open('$savedDir/$name');
+    }
+  }
+
+  void _openDownloadSheet(List urls, List names) {
+    if (urls.isEmpty) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+        ),
+        padding: EdgeInsets.fromLTRB(
+            20, 10, 20, 20 + MediaQuery.of(ctx).padding.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Outros exames',
+              style: GoogleFonts.dmSans(
+                color: AppColor.primary,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.6,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Escolha o PDF que deseja baixar',
+              style: GoogleFonts.archivo(
+                color: AppColor.primary.withOpacity(0.55),
+                fontSize: 12.5,
+              ),
+            ),
+            const SizedBox(height: 14),
+            for (int i = 0; i < urls.length; i++)
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _downloadPdf(urls[i].toString(), names[i].toString());
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3EEFC),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppColor.primary.withOpacity(0.10),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.description_rounded,
+                            color: AppColor.primary, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          names[i].toString(),
+                          style: GoogleFonts.archivo(
+                            color: AppColor.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.download_rounded,
+                          color: AppColor.primary, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _centerSelectedPet(int index) {
+    if (!_petStripController.hasClients) return;
+    const itemWidth = 56.0 + 14.0;
+    final viewportW = _petStripController.position.viewportDimension;
+    final target = (index * itemWidth + itemWidth / 2) - viewportW / 2;
+    final clamped = target.clamp(
+      _petStripController.position.minScrollExtent,
+      _petStripController.position.maxScrollExtent,
+    );
+    _petStripController.animateTo(
+      clamped,
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _checkVersion() async {
+    try {
+      final Response<dynamic> response = await appAtivacaoRepository.getVersion();
+      final String version = response.data['records'][0]['fields']['Name'];
+      if (box.read('version') != version) _openModalVersion();
+    } catch (_) {}
+  }
+
+  void _launchURL(String url) async {
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    }
+  }
+
+  Future<String> _storagePath() async {
+    final directory = Platform.isAndroid
+        ? await getExternalStorageDirectory()
+        : await getApplicationDocumentsDirectory();
+    return directory!.path;
+  }
+
+  void _modalVideoApresentacao() {
+    showDialog(
+      context: context,
+      builder: (_) => ModalVideo(controller: _controller),
+    );
+  }
+
+  void _openModalVersion() {
+    showCupertinoDialog(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('Atualização disponível'),
+        content: const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text(
+              'Uma atualização recente do Box4Pets está disponível agora!'),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Deixar para depois'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () {
+              if (Theme.of(context).platform == TargetPlatform.iOS) {
+                _launchURL(
+                    'https://apps.apple.com/us/app/box4pets/id6467569454?platform=iphone');
+              } else {
+                _launchURL(
+                    'https://play.google.com/store/apps/details?id=br.com.box4pets.box_4_pets&pli=1');
+              }
+            },
+            child: const Text('Atualizar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _selectTab(_HomeTab tab) {
+    setState(() => _selectedTab = tab);
+  }
+
+  void _onQuickAction(String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$label: selecione um pet primeiro'),
+        backgroundColor: AppColor.primary,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<AppAtivacaoBloc, AppAtivacaoState>(
+        bloc: _appAtivacaoBloc,
+        listener: (context, state) {
+          if (state is AppAtivacaoLoaded) {
+            _lastLoaded = state;
+          } else if (state is AppDownloadPDF) {
+            _openDownloadSheet(state.downloadPDFModel.url,
+                state.downloadPDFModel.name);
+            _appAtivacaoBloc.add(AppAtivacaoGetEvent());
+          }
+        },
+        builder: (context, state) {
+          final loaded = state is AppAtivacaoLoaded ? state : _lastLoaded;
+          final List<BlogModel> allBlog = loaded?.blog ?? const [];
+          final sorted = [...allBlog]
+            ..sort((a, b) => b.dataCriacao.compareTo(a.dataCriacao));
+          final List<BlogModel> blog = sorted.take(6).toList();
+          final List<AppAtivacaoModel> realPets =
+              loaded?.appAtivacao ?? const [];
+          final List<AppAtivacaoModel> allPets = realPets;
+          final q = _searchQuery.trim().toLowerCase();
+          final pets = allPets.where((p) {
+            final s = (p.status_aplicativo ?? '').toLowerCase();
+            final isLiberado = s.contains('liberado');
+            final matchesTab = _selectedTab == _HomeTab.emAnalise
+                ? !isLiberado
+                : isLiberado;
+            if (!matchesTab) return false;
+            if (q.isEmpty) return true;
+            return p.name.toLowerCase().contains(q) ||
+                p.raca.toLowerCase().contains(q) ||
+                p.nome_cliente.toLowerCase().contains(q);
+          }).toList();
+          final petIndex = pets.isEmpty
+              ? 0
+              : _selectedPetIndex.clamp(0, pets.length - 1);
+          final isLoading = state is AppAtivacaoLoading;
+
+          if (isLoading) {
+            return const Box4PetsLoader();
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTopRow(),
+                const SizedBox(height: 18),
+                _buildTabsRow(),
+                const SizedBox(height: 12),
+                if (pets.isNotEmpty) ...[
+                  _buildPetStrip(pets, petIndex),
+                  const SizedBox(height: 10),
+                  _buildFocusedPetCard(pets[petIndex]),
+                ] else if (allPets.isEmpty)
+                  _buildEmptyPetCard()
+                else
+                  _buildEmptyFilterCard(),
+                const SizedBox(height: 14),
+                _buildContentCarousel(blog),
+              ],
+            ),
+          );
+        });
+  }
+
+  Widget _buildTopRow() {
+    final hasLocal = _localPhotoPath != null;
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            widget.onProfileRequested?.call();
+          },
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: hasLocal
+                  ? Image.file(File(_localPhotoPath!),
+                      width: 48, height: 48, fit: BoxFit.cover)
+                  : Icon(Icons.person_rounded,
+                      color: AppColor.primary, size: 26),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(40),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: TextField(
+              onChanged: (v) => setState(() => _searchQuery = v),
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                prefixIcon:
+                    Icon(Icons.search, color: AppColor.primary, size: 22),
+                hintText: 'Buscar pet, raça ou cliente',
+                hintStyle: TextStyle(
+                  color: AppColor.primary.withOpacity(0.45),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+                border: const OutlineInputBorder(
+                  borderSide: BorderSide.none,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        onPressed: () =>
+                            setState(() => _searchQuery = ''),
+                        icon: Icon(Icons.close_rounded,
+                            color: AppColor.primary.withOpacity(0.5),
+                            size: 18),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.15, end: 0);
+  }
+
+  Widget _buildTabsRow() {
+    return Row(
+      children: [
+        _buildTab('Em Análise', _HomeTab.emAnalise),
+        const SizedBox(width: 8),
+        _buildTab('Resultados', _HomeTab.resultados),
+      ],
+    ).animate(delay: 160.ms).fadeIn(duration: 350.ms);
+  }
+
+  Widget _buildTab(String label, _HomeTab tab) {
+    final selected = _selectedTab == tab;
+    return GestureDetector(
+      onTap: () => _selectTab(tab),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColor.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected
+                ? AppColor.primary
+                : AppColor.primary.withOpacity(0.18),
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColor.primary.withOpacity(0.7),
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            fontSize: 11.5,
+            letterSpacing: -0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPetStrip(List<AppAtivacaoModel> pets, int selectedIndex) {
+    if (pets.length <= 1) return const SizedBox.shrink();
+    return SizedBox(
+      height: 78,
+      child: ListView.separated(
+        controller: _petStripController,
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.zero,
+        itemCount: pets.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        itemBuilder: (context, index) {
+          final pet = pets[index];
+          final isSelected = index == selectedIndex;
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _selectedPetIndex = index);
+              WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => _centerSelectedPet(index));
+            },
+            child: SizedBox(
+              width: 56,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColor.primary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFE7DDF8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: pet.url != null
+                          ? SmartNetworkImage(url: pet.url)
+                          : Icon(Icons.pets,
+                              color: AppColor.primary.withOpacity(0.5),
+                              size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    pet.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? AppColor.primary
+                          : AppColor.primary.withOpacity(0.6),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    ).animate(delay: 200.ms).fadeIn(duration: 320.ms);
+  }
+
+  Widget _buildFocusedPetCard(AppAtivacaoModel pet) {
+    final actions = <_PetActionData>[];
+    if (pet.resultado) {
+      actions.add(_PetActionData(
+        label: 'Traços e Doenças',
+        icon: Icons.science_outlined,
+        color: AppColor.primary,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TracosDoencas(
+              box: pet.Case_ID,
+              name: pet.name,
+              ativacao: pet,
+              url: pet.url,
+            ),
+          ),
+        ),
+      ));
+    }
+    if (pet.resultadoRaca) {
+      actions.add(_PetActionData(
+        label: 'Raças',
+        icon: Icons.pets,
+        color: AppColor.secondary,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TesteRaca(
+              id: pet.Case_ID,
+              name: pet.name,
+              ativacao: pet,
+            ),
+          ),
+        ),
+      ));
+    }
+    if (pet.ourosTestes) {
+      actions.add(_PetActionData(
+        label: 'Outros',
+        icon: Icons.description_outlined,
+        color: AppColor.orange,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          _appAtivacaoBloc
+              .add(AppAtivacaoSDownloadPDF(id: pet.Case_ID, name: pet.name));
+        },
+      ));
+    }
+
+    return _GlassCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      borderRadius: 22,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFE7DDF8),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: pet.url != null
+                    ? SmartNetworkImage(url: pet.url)
+                    : Icon(Icons.pets, color: AppColor.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      pet.name,
+                      style: TextStyle(
+                        color: AppColor.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
+                        height: 1.15,
+                        letterSpacing: -0.4,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (pet.raca.isNotEmpty || pet.sexo.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          [pet.raca, pet.sexo]
+                              .where((s) => s.isNotEmpty)
+                              .join(' · '),
+                          style: TextStyle(
+                            color: AppColor.primary.withOpacity(0.55),
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (actions.isEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3EEFC),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Carregando resultados, aguarde!',
+                style: TextStyle(
+                  color: AppColor.primary.withOpacity(0.75),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (int i = 0; i < actions.length; i++) ...[
+                  Expanded(
+                    flex: actions[i].label.contains('Traços') ? 3 : 2,
+                    child: _petActionPill(actions[i]),
+                  ),
+                  if (i < actions.length - 1) const SizedBox(width: 6),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    ).animate(delay: 240.ms).fadeIn(duration: 380.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _petActionPill(_PetActionData a) {
+    return GestureDetector(
+      onTap: a.onTap,
+      child: Container(
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: a.color,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(a.icon, color: Colors.white, size: 12),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                a.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 10,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyFilterCard() {
+    final isAnalise = _selectedTab == _HomeTab.emAnalise;
+    final hasSearch = _searchQuery.trim().isNotEmpty;
+    final title = hasSearch
+        ? 'Nenhum resultado'
+        : (isAnalise ? 'Nenhum pet em análise' : 'Nenhum resultado liberado');
+    final subtitle = hasSearch
+        ? 'Tente outro nome, raça ou cliente'
+        : (isAnalise
+            ? 'Todos os pets já têm resultados liberados'
+            : 'Os resultados aparecem aqui quando ficam prontos');
+    return _GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      borderRadius: 22,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFE7DDF8),
+            ),
+            child: Icon(
+              hasSearch
+                  ? Icons.search_off_rounded
+                  : (isAnalise
+                      ? Icons.hourglass_empty_rounded
+                      : Icons.task_alt_rounded),
+              color: AppColor.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: AppColor.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: AppColor.primary.withOpacity(0.55),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 320.ms);
+  }
+
+  Widget _buildEmptyPetCard() {
+    return _GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+      borderRadius: 22,
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFE7DDF8),
+            ),
+            child: Icon(Icons.pets, color: AppColor.primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Nenhum pet ativado',
+                  style: TextStyle(
+                    color: AppColor.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Use o botão Ativar pra começar',
+                  style: TextStyle(
+                    color: AppColor.primary.withOpacity(0.55),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate(delay: 240.ms).fadeIn(duration: 380.ms);
+  }
+
+  Widget _quickActionButton({
+    required String label,
+    required IconData icon,
+    required Color background,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 60,
+        height: 60,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 8.5,
+                height: 1.05,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentCarousel(List<BlogModel> blog) {
+    if (blog.isEmpty) {
+      return Container(
+        height: 280,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          'Nenhum conteúdo disponível',
+          style: TextStyle(color: AppColor.primary.withOpacity(0.5)),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final cardWidth = width * 0.74;
+            final cardSpacing = width * 0.52;
+
+            return SizedBox(
+              height: 380,
+              child: AnimatedBuilder(
+                animation: _carouselController,
+                builder: (context, _) {
+                  final double page = _carouselController.positions.isNotEmpty &&
+                          _carouselController.position.haveDimensions
+                      ? (_carouselController.page ?? 0.0)
+                      : _carouselController.initialPage.toDouble();
+
+                  final centerIndex =
+                      page.round().clamp(0, blog.length - 1);
+                  final visible = <int>[];
+                  for (int i = 0; i < blog.length; i++) {
+                    if ((page - i).abs() <= 3.0) visible.add(i);
+                  }
+                  visible.sort((a, b) {
+                    if (a == centerIndex) return 1;
+                    if (b == centerIndex) return -1;
+                    return (page - b).abs().compareTo((page - a).abs());
+                  });
+
+                  return Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      ...visible.map((index) {
+                        final delta = page - index;
+                        final absDelta = delta.abs().clamp(0.0, 2.0);
+                        final clamped = delta.clamp(-1.5, 1.5);
+                        final scale = (1 - (absDelta * 0.18)).clamp(0.6, 1.0);
+                        final rotationY = clamped * 0.28;
+                        final translateY = absDelta * 22;
+                        final translateX = -clamped * cardSpacing;
+                        final opacity =
+                            (1 - (absDelta * 0.62)).clamp(0.32, 1.0);
+                        final shadowOpacity =
+                            (0.34 - (absDelta * 0.26)).clamp(0.05, 0.34);
+                        final shadowBlur =
+                            (38 - (absDelta * 24)).clamp(2.0, 38.0);
+                        final shadowOffsetY =
+                            (20 - (absDelta * 12)).clamp(2.0, 20.0);
+                        final contentOp =
+                            (1 - absDelta * 1.5).clamp(0.0, 1.0);
+
+                        return IgnorePointer(
+                          child: Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()
+                              ..setEntry(3, 2, 0.0015)
+                              ..rotateY(rotationY)
+                              ..translate(translateX, translateY)
+                              ..scale(scale),
+                            child: SizedBox(
+                              width: cardWidth,
+                              child: Opacity(
+                                opacity: opacity,
+                                child: _buildCarouselCard(
+                                  blog[index],
+                                  shadowOpacity: shadowOpacity,
+                                  shadowBlur: shadowBlur,
+                                  shadowOffsetY: shadowOffsetY,
+                                  contentOpacity: contentOp,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                      Positioned.fill(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTap: () {
+                            if (_carouselIndex >= 0 &&
+                                _carouselIndex < blog.length) {
+                              final item = blog[_carouselIndex];
+                              Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  opaque: false,
+                                  barrierColor: Colors.transparent,
+                                  transitionDuration:
+                                      const Duration(milliseconds: 460),
+                                  reverseTransitionDuration:
+                                      const Duration(milliseconds: 320),
+                                  pageBuilder: (_, __, ___) =>
+                                      ScreenExpanded(blog: item, tag: item.id),
+                                  transitionsBuilder:
+                                      (_, animation, __, child) {
+                                    final curved = CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOutQuart,
+                                      reverseCurve: Curves.easeInCubic,
+                                    );
+                                    return FadeTransition(
+                                      opacity: curved,
+                                      child: ScaleTransition(
+                                        scale: Tween<double>(
+                                                begin: 0.95, end: 1.0)
+                                            .animate(curved),
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            }
+                          },
+                          child: PageView.builder(
+                            controller: _carouselController,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: blog.length,
+                            onPageChanged: (index) {
+                              HapticFeedback.lightImpact();
+                              setState(() => _carouselIndex = index);
+                            },
+                            itemBuilder: (_, __) => const SizedBox.expand(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
+        ).animate(delay: 320.ms).fadeIn(duration: 420.ms),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(blog.length, (i) {
+            final active = i == _carouselIndex;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOut,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: active ? 20 : 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: active
+                    ? AppColor.primary
+                    : AppColor.primary.withOpacity(0.22),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCarouselCard(
+    BlogModel item, {
+    required double shadowOpacity,
+    required double shadowBlur,
+    required double shadowOffsetY,
+    required double contentOpacity,
+  }) {
+    final image = item.banner.isNotEmpty ? item.banner[0].url : null;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      child: Hero(
+        tag: item.id,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(26),
+              color: const Color(0xFFE7DDF8),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColor.primary.withOpacity(shadowOpacity),
+                  blurRadius: shadowBlur,
+                  spreadRadius: -4,
+                  offset: Offset(0, shadowOffsetY),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(shadowOpacity * 0.4),
+                  blurRadius: shadowBlur * 0.6,
+                  offset: Offset(0, shadowOffsetY * 0.5),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  SmartNetworkImage(url: image),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.55),
+                          Colors.black.withOpacity(0.92),
+                        ],
+                        stops: const [0.2, 0.6, 1.0],
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(20),
+                    alignment: Alignment.bottomLeft,
+                    child: Opacity(
+                      opacity: contentOpacity,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.titulo,
+                            style: GoogleFonts.dmSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 31,
+                              height: 1.08,
+                              letterSpacing: -31 * 0.04,
+                            ),
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (item.subTitulo.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              item.subTitulo,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.95),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        ),
+    );
   }
 }

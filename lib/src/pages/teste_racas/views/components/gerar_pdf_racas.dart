@@ -116,14 +116,15 @@ reportViwRacas(
            ),
             Padding(padding: const EdgeInsets.all(10)),
           Text('Utilizando o teste de DNA e uma análise algorítmica podemos identificar a composição de raças do(a) ${ativacao.name}', style: TextStyle(fontSize: 14, color: PdfColor.fromHex('#3e2e75') ),),
+            SizedBox(height: 20),
             Center(
-              child: pw.Image(pw.MemoryImage(imageData), height: 500, width: 800),
+              child: pw.Image(
+                pw.MemoryImage(imageData),
+                height: 360,
+                fit: pw.BoxFit.contain,
+              ),
             ),
-
-            Padding(padding: const EdgeInsets.all(10)),
-
-            
-
+            pw.NewPage(),
             Padding(padding: const EdgeInsets.all(10)),
             Text('Sobre o Painel Origem', style: TextStyle(fontSize: 16, color: PdfColor.fromHex('#3e2e75'), fontWeight: FontWeight.bold),),
             Text('Esse teste avalia a ancestralidade do seu cão em relação a algumas raças puras específicas, voltando três gerações. No entanto, pode haver uma porcentagem do genoma que ainda não foi caracterizada ou relacionada a nenhuma raça conhecida, sendo descrita como raça indeterminada. Uma maior porcentagem de genoma ainda não identificado pode ocorrer em países onde a genotipagem canina ainda está em estágio inicial, como no Brasil.',  style: TextStyle(fontSize: 14, color: PdfColor.fromHex('#3e2e75')),),

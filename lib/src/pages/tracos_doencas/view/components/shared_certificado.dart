@@ -101,6 +101,8 @@ reportViewCertificado(
   required List<String> principais,
   required String name,
   required AppAtivacaoModel ativacao,
+  void Function(int current, int total)? onProgress,
+  void Function(String path)? onComplete,
 }) async {
   String json = box.read('user');
   UserActivationModel user = UserActivationModel.fromJson(jsonDecode(json));
@@ -110,9 +112,11 @@ reportViewCertificado(
   List<ListDoencasPdfModel> principais_caracteristicas = [];
   List<ListDoencasPdfModel> todas_doencas = [];
   List<ListTracosPdf> tracos = [];
-  
 
-  for (var element in principais) {
+  onProgress?.call(0, principais.length);
+
+  for (int i = 0; i < principais.length; i++) {
+    final element = principais[i];
     String result = "";
 
     Map<String, dynamic> map = {};
@@ -139,6 +143,7 @@ reportViewCertificado(
     );
     principais_caracteristicas
         .sort((a, b) => a.categoria.compareTo(b.categoria));
+    onProgress?.call(i + 1, principais.length);
   }
   
 
@@ -265,17 +270,20 @@ reportViewCertificado(
   //save PDF
 
   final String dir = (await getApplicationDocumentsDirectory()).path;
-  final String path = '$dir/Resultado_${ativacao.name}.pdf';
+  final String path = '$dir/Certificado_${ativacao.name}.pdf';
   final File file = File(path);
 
   await file.writeAsBytes(await pdf.save());
-  box.write('Resultado_${ativacao.name}.pdf', path);
+  box.write('Certificado_${ativacao.name}.pdf', path);
   stopLoading();
-  material.Navigator.of(context).push(
-    material.MaterialPageRoute(
-      builder: (_) => PdfViwerPage(path: path),
-    ),
-  );
-
+  if (onComplete != null) {
+    onComplete(path);
+  } else {
+    material.Navigator.of(context).push(
+      material.MaterialPageRoute(
+        builder: (_) => PdfViwerPage(path: path),
+      ),
+    );
+  }
 }
 

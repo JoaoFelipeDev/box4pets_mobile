@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -51,7 +53,6 @@ dependencies:
   hidden_drawer_menu:
   url_launcher: ^6.3.2
   webview_flutter: ^4.13.1
-  syncfusion_flutter_charts: ^22.2.11
   pie_chart: ^5.3.2
   pdf: ^3.10.1
   path_provider: ^2.1.5
@@ -74,8 +75,15 @@ dependencies:
   win32: ^5.5.4
   archive: ^3.6.1
   easy_pdf_viewer: ^1.0.8
+  google_fonts: ^8.1.0
+  flutter_svg: ^2.3.0
+  sensors_plus: ^7.0.0
+  lottie: ^3.3.0
+  image_picker: ^1.2.2
+  fl_chart: ^1.2.0
 
 dev_dependencies:
+  flutter_native_splash: ^2.4.4
   flutter_test:
     sdk: flutter
 
@@ -110,6 +118,8 @@ flutter:
     - assets/fonts/
     - assets/images/
     - assets/json/
+    - assets/logoB4p.svg
+    - assets/Moody Dog.json
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

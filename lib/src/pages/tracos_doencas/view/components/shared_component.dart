@@ -141,6 +141,7 @@ reportView(
   required List<String> todas,
   required String name,
   required AppAtivacaoModel ativacao,
+  void Function(String path)? onComplete,
 }) async {
   final stopwatch = Stopwatch()..start();
   String json = box.read('user');
@@ -730,11 +731,15 @@ reportView(
     await file.writeAsBytes(await pdf.save());
     box.write('Resultado_${ativacao.name}.pdf', path);
 
-    material.Navigator.of(context).push(
-      material.MaterialPageRoute(
-        builder: (_) => PdfViwerPage(path: path),
-      ),
-    );
+    if (onComplete != null) {
+      onComplete(path);
+    } else {
+      material.Navigator.of(context).push(
+        material.MaterialPageRoute(
+          builder: (_) => PdfViwerPage(path: path),
+        ),
+      );
+    }
     change('', true, 0);
   }
 }

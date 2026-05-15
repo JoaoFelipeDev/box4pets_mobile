@@ -29,13 +29,15 @@ class UserAuthModel {
   }
 
   factory UserAuthModel.fromMap(Map<String, dynamic> map) {
+    final fields = (map['fields'] as Map?) ?? const {};
+    String s(dynamic v) => (v ?? '').toString();
     return UserAuthModel(
-      id: map['id'] as String,
-      nomeCompleto: map['fields']['Nome'] as String,
-      perfil: map['fields']['Perfil'] as String,
-      email: map['fields']['Email'] as String,
-      telefone: map['fields']['Telefone'] as String,
-      endereco: map['fields']['Endereço'] as String,
+      id: s(map['id']),
+      nomeCompleto: s(fields['Nome']),
+      perfil: s(fields['Perfil']),
+      email: s(fields['Email']),
+      telefone: s(fields['Telefone']),
+      endereco: s(fields['Endereço']),
     );
   }
 

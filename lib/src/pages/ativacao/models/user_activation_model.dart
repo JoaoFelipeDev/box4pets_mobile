@@ -29,13 +29,14 @@ class UserActivationModel {
   }
 
   factory UserActivationModel.fromMap(Map<String, dynamic> map) {
+    String s(dynamic v) => (v ?? '').toString();
     return UserActivationModel(
-      id: map['id'] as String,
-      name: map['Nome completo'] as String,
-      perfil: map['Perfil'] as String,
-      email: map['Email'] as String,
-      telefone: map['Telefone'] as String,
-      endereco: map['Endereço'] as String,
+      id: s(map['id']),
+      name: s(map['Nome completo']),
+      perfil: s(map['Perfil']),
+      email: s(map['Email']),
+      telefone: s(map['Telefone']),
+      endereco: s(map['Endereço']),
     );
   }
 

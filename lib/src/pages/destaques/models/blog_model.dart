@@ -55,7 +55,10 @@ class BlogModel {
       novidades: map['fields']['Raças'] ?? false,
       treinamentos: map['fields']['Traços e Doenças'] ?? false,
       autor: map['fields']['Autor'] ?? '',
-      dataCriacao: map['fields']['data de criação'] ?? '',
+      dataCriacao: (map['fields']['data de criação'] != null &&
+              (map['fields']['data de criação'] as String).isNotEmpty)
+          ? map['fields']['data de criação']
+          : (map['createdTime'] ?? ''),
     );
   }
 

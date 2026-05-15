@@ -22,30 +22,52 @@ class AppAtivacaoBloc extends Bloc<AppAtivacaoEvent, AppAtivacaoState> {
     List<AppAtivacaoModel> list = [];
     List<BlogModel> blog = [];
     on<AppAtivacaoEvent>((event, emit) async {
-      String json = box.read('user');
-      UserActivationModel user = UserActivationModel.fromJson(jsonDecode(json));
+      UserActivationModel user;
+      try {
+        final String json = box.read('user') ?? '{}';
+        user = UserActivationModel.fromJson(jsonDecode(json));
+      } catch (_) {
+        user = UserActivationModel(
+          id: '',
+          name: '',
+          perfil: '',
+          email: '',
+          telefone: '',
+          endereco: '',
+        );
+      }
       emit(AppAtivacaoLoading());
-      final Response<dynamic> responseBlog =
-          await appAtivacaoRepository.getBlog();
-      if (responseBlog.statusCode != 200) {
-      } else {
-        print(responseBlog.data['records']);
-        List<dynamic> responseMap = responseBlog.data['records'];
-        blog = responseMap.map<BlogModel>((e) => BlogModel.fromMap(e)).toList();
+      try {
+        final Response<dynamic> responseBlog =
+            await appAtivacaoRepository.getBlog();
+        if (responseBlog.statusCode == 200 &&
+            responseBlog.data is Map &&
+            responseBlog.data['records'] is List) {
+          final List<dynamic> responseMap = responseBlog.data['records'];
+          blog = responseMap
+              .map<BlogModel>((e) => BlogModel.fromMap(e))
+              .toList();
+        }
+      } catch (e) {
+        print('getBlog falhou: $e');
       }
       if (event is AppAtivacaoGetEvent) {
-        final Response<dynamic> response =
-            await appAtivacaoRepository.getAppAtivacao();
-
-        List<dynamic> result = response.data['records'];
-        result.forEach((element) {
-          print('${element['fields']['Nome do Pet']} - ${element['id']}');
-        });
-        list = result
-            .map<AppAtivacaoModel>((e) => AppAtivacaoModel.fromMap(e))
-            .toList();
+        try {
+          final Response<dynamic> response =
+              await appAtivacaoRepository.getAppAtivacao();
+          if (response.data is Map && response.data['records'] is List) {
+            final List<dynamic> result = response.data['records'];
+            list = result
+                .map<AppAtivacaoModel>((e) => AppAtivacaoModel.fromMap(e))
+                .toList();
+          } else {
+            list = [];
+          }
+        } catch (e) {
+          print('getAppAtivacao falhou: $e');
+          list = [];
+        }
         emit(AppAtivacaoLoaded(appAtivacao: list, user: user, blog: blog));
-
       } else if (event is AppAtivacaoGetFilterEvent) {
         List<AppAtivacaoModel> listFilter = [];
 

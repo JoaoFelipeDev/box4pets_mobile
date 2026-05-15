@@ -1,60 +1,59 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'package:flutter/material.dart';
-
 import 'package:Box4Pets/config/app_color.dart';
+import 'package:Box4Pets/src/pages/ativacao/views/activation.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-class AppBarCustom extends StatefulWidget {
-  final void Function() callback;
-  const AppBarCustom({
-    Key? key,
-    required this.callback,
-  }) : super(key: key);
+class AppBarCustom extends StatelessWidget {
+  const AppBarCustom({Key? key}) : super(key: key);
 
-  @override
-  _AppBarCustomState createState() => _AppBarCustomState();
-}
-
-class _AppBarCustomState extends State<AppBarCustom> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 16, bottom: 10),
+      padding: const EdgeInsets.fromLTRB(20, 6, 12, 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          IconButton(
-              onPressed: widget.callback,
-              icon: Icon(
-                Icons.menu,
-                color: AppColor.primary,
-                size: 30,
-              )),
-          Image.asset('assets/images/logo_app_bar.png'),
+          const SizedBox(width: 36, height: 36),
+          SvgPicture.asset(
+            'assets/logoB4p.svg',
+            height: 28,
+            fit: BoxFit.contain,
+          ),
           InkWell(
-            onTap: () => Navigator.pushNamed(context, '/activation'),
+            onTap: () => Navigator.push(
+              context,
+              CupertinoPageRoute(
+                fullscreenDialog: true,
+                builder: (_) => const Activation(),
+              ),
+            ),
+            borderRadius: BorderRadius.circular(10),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: AppColor.primary,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
-                    Icons.add,
-                    color: AppColor.secondary,
-                    size: 30,
-                  ),
+                  child: const Icon(Icons.add_rounded,
+                      color: Colors.white, size: 22),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   'Ativar',
                   style: TextStyle(
-                      color: AppColor.primary,
-                      fontSize: 10.77,
-                      fontWeight: FontWeight.w600),
-                )
+                    color: AppColor.primary,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
               ],
             ),
           ),

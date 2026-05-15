@@ -14,28 +14,27 @@ class DoencasUmaVarianteBloc
   final appListaDoencaRepository = AppListaDoencaRepository();
   DoencasUmaVarianteBloc() : super(DoencasUmaVarianteInitial()) {
     on<DoencasUmaVarianteEvent>((event, emit) async {
-      emit(DoencasUmaVarianteLoading());
       if (event is DoencasUmaVarianteGetEvent) {
-        List<AppListaDoencasModel> doenca = [];
-        List<String> categorias = [];
-        // List respCategorias = await appListaDoencaRepository.getListCategoria(event.especie);
-        List<String> listId = event.id;
+        final List<AppListaDoencasModel> doenca = [];
+        final List<String> categorias = [];
+        final List<String> listId = event.id;
 
+        emit(DoencasUmaVarianteLoading(current: 0, total: listId.length));
 
-        for (var element in listId) {
-          final  response = await appListaDoencaRepository
+        for (int i = 0; i < listId.length; i++) {
+          final element = listId[i];
+          final response = await appListaDoencaRepository
               .getListaDoenca(id: element, especies: event.especie);
-              
-    
 
           final map = response.data['records'][0]['fields'];
-       
-            if (!categorias.contains(map['Categoria'])) {
+          if (!categorias.contains(map['Categoria'])) {
             categorias.add(map['Categoria']);
           }
           doenca.add(AppListaDoencasModel.fromMap(map));
+
+          emit(DoencasUmaVarianteLoading(
+              current: i + 1, total: listId.length));
         }
-        print('doenca: ${doenca.length}');
         emit(DoencasUmaVarianteLoaded(doenca: doenca, categorias: categorias));
       }
     });

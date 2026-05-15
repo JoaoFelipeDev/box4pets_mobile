@@ -11,19 +11,17 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //Remove this method to stop OneSignal Debugging
-  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
 
-  OneSignal.initialize("837c2976-44e4-427d-84dc-af0182b12175");
-
-// The promptForPushNotificationsWithUserResponse function will show the iOS or Android push notification prompt. We recommend removing the following code and instead using an In-App Message to prompt for notification permission
-  OneSignal.Notifications.requestPermission(true);
-  if (Platform.isIOS) {}
+  // OneSignal desativado em build de dev: Personal Team grátis não provê entitlement
+  // de push, e a chamada nativa de registerForRemoteNotifications crasha o app.
+  // Reativar em build de produção com Bundle ID e certificados oficiais.
+  // OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+  // OneSignal.initialize("837c2976-44e4-427d-84dc-af0182b12175");
+  // OneSignal.Notifications.requestPermission(true);
 
   await dotenv.load(fileName: ".env");
   await GetStorage.init();
   await ScreenUtil.ensureScreenSize();
-  WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize();
   runApp(const Box4PetsApp());
 }

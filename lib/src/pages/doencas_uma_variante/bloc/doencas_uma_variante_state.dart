@@ -6,7 +6,11 @@ sealed class DoencasUmaVarianteState {}
 
 class DoencasUmaVarianteInitial extends DoencasUmaVarianteState {}
 
-class DoencasUmaVarianteLoading extends DoencasUmaVarianteState {}
+class DoencasUmaVarianteLoading extends DoencasUmaVarianteState {
+  final int current;
+  final int total;
+  DoencasUmaVarianteLoading({this.current = 0, this.total = 0});
+}
 
 class DoencasUmaVarianteLoaded extends DoencasUmaVarianteState {
   final List<AppListaDoencasModel> doenca;
