@@ -16,7 +16,7 @@ Migrar o app de um layout "antigo" (Figma não bem replicado) para uma identidad
 - Deploy testado em:
   - Simulator iPhone 17 Pro (`9BA077A5-BDFA-426E-B08C-C75704769885`)
   - iPhone físico de Erich (`00008140-001A60381407001C`)
-- OneSignal `initialize` comentado em `lib/main.dart` enquanto a conta é Personal Team (não tem entitlement push).
+- OneSignal `initialize` ativo em `lib/main.dart` (push restaurado). Em build com Personal Team grátis pode crashar em `registerForRemoteNotifications` no iPhone físico — usar Bundle ID/cert oficial para teste em device real, ou rodar no Simulator.
 
 ## 2. Tipografia e tema
 

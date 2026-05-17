@@ -12,12 +12,9 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // OneSignal desativado em build de dev: Personal Team grátis não provê entitlement
-  // de push, e a chamada nativa de registerForRemoteNotifications crasha o app.
-  // Reativar em build de produção com Bundle ID e certificados oficiais.
-  // OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-  // OneSignal.initialize("837c2976-44e4-427d-84dc-af0182b12175");
-  // OneSignal.Notifications.requestPermission(true);
+  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+  OneSignal.initialize("837c2976-44e4-427d-84dc-af0182b12175");
+  OneSignal.Notifications.requestPermission(true);
 
   await dotenv.load(fileName: ".env");
   await GetStorage.init();
