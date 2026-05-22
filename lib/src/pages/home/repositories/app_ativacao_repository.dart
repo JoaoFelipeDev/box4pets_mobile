@@ -33,19 +33,6 @@ class AppAtivacaoRepository {
     }
   }
 
-  Future<Response<dynamic>> getAppResultadoSaudeCao() async {
-    String json = box.read('user');
-    UserActivationModel user = UserActivationModel.fromJson(jsonDecode(json));
-    String userEmail = user.email;
-    try {
-      final Response<dynamic> response = await http.dio
-          .get('/app_ativacao?filterByFormula=Email_app_usuario="$userEmail"');
-      return response;
-    } on DioException catch (e) {
-      return e.response!;
-    }
-  }
-
   Future<Response<dynamic>> getBlog() async {
     try {
       final Response<dynamic> response = await http.dio.get('/blog_app');

@@ -34,6 +34,7 @@ class _DestaquesState extends State<Destaques> {
 
   @override
   void dispose() {
+    _blogBloc.close();
     _featuredController.dispose();
     super.dispose();
   }

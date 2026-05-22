@@ -55,6 +55,12 @@ class _DoencasUmaVarianteState extends State<DoencasUmaVariante> {
   }
 
   @override
+  void dispose() {
+    _doencasUmaVarianteBloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,

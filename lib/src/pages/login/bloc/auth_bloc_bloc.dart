@@ -1,4 +1,4 @@
-import 'package:Box4Pets/service/util_service.dart';
+import 'package:Box4Pets/debug_agent_log.dart';
 import 'package:bloc/bloc.dart';
 import 'package:Box4Pets/src/pages/login/repositories/auth_repository.dart';
 import 'package:dio/dio.dart';
@@ -21,12 +21,30 @@ class AuthBlocBloc extends Bloc<AuthBlocEvent, AuthBlocState> {
       emit(AuthBlocLoading());
 
       if (event is AuthEvent) {
-        final isAuthenticated = await _authRepository.auth(auth: event.auth);
-        if (isAuthenticated) {
-          emit(AuthBlocLoaded(isAuthenticated: isAuthenticated));
-        } else {
-          String messageError = 'Email ou senha incorretos!';
-          emit(AuthBlocError(messageError: messageError));
+        try {
+          final result = await _authRepository.auth(auth: event.auth);
+          agentDebugLog(
+            location: 'auth_bloc_bloc.dart:AuthEvent',
+            message: 'auth bloc result',
+            hypothesisId: 'H-D',
+            data: {'success': result.success},
+          );
+          if (result.success) {
+            emit(AuthBlocLoaded(isAuthenticated: true));
+          } else {
+            emit(AuthBlocError(
+              messageError:
+                  result.errorMessage ?? 'Email ou senha incorretos!',
+            ));
+          }
+        } catch (e) {
+          agentDebugLog(
+            location: 'auth_bloc_bloc.dart:AuthEvent:error',
+            message: 'auth bloc uncaught error',
+            hypothesisId: 'H-B',
+            data: {'error': e.toString()},
+          );
+          emit(AuthBlocError(messageError: 'Erro ao autenticar. Tente novamente.'));
         }
       }else if(event is AuthForgotPasswordEvent){
        final Response(:data) = await _authRepository.getUser(event.email);

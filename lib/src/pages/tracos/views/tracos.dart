@@ -77,6 +77,12 @@ class _TracosState extends State<Tracos> {
   }
 
   @override
+  void dispose() {
+    _tracosBloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocListener<TracosBloc, TracosState>(
       bloc: _tracosBloc,

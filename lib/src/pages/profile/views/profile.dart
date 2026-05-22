@@ -71,6 +71,7 @@ class _ProfileState extends State<Profile> {
 
   @override
   void dispose() {
+    _profileBloc.close();
     _passwordController.dispose();
     _passwordAgainController.dispose();
     super.dispose();

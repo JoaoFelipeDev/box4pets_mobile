@@ -91,7 +91,7 @@ class _ParallaxBackgroundState extends State<ParallaxBackground>
             ),
           ),
         ),
-        widget.child,
+        RepaintBoundary(child: widget.child),
       ],
     );
   }

@@ -70,6 +70,7 @@ class _ActivationState extends State<Activation> {
 
   @override
   void dispose() {
+    _activationBloc.close();
     nomePet.dispose();
     controllerIdade.dispose();
     controllerSwab.dispose();
@@ -1189,104 +1190,3 @@ class _RacaPickerSheetState extends State<_RacaPickerSheet> {
   }
 }
 
-class _TestePickerSheet extends StatelessWidget {
-  final List<String> testes;
-  final String selected;
-  const _TestePickerSheet({required this.testes, required this.selected});
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.65,
-      minChildSize: 0.4,
-      maxChildSize: 0.9,
-      expand: false,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(28),
-              topRight: Radius.circular(28),
-            ),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-                child: Row(
-                  children: [
-                    Text(
-                      'Teste adquirido',
-                      style: GoogleFonts.dmSans(
-                        color: AppColor.primary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  itemCount: testes.length,
-                  itemBuilder: (context, index) {
-                    final t = testes[index];
-                    final isSelected = t == selected;
-                    return InkWell(
-                      onTap: () => Navigator.pop(context, t),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 16),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Colors.black.withOpacity(0.05),
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                t,
-                                style: GoogleFonts.archivo(
-                                  color: AppColor.primary,
-                                  fontSize: 13,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            if (isSelected)
-                              Icon(Icons.check_rounded,
-                                  color: AppColor.primary, size: 20),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}

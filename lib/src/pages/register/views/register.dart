@@ -52,6 +52,7 @@ class _RegisterState extends State<Register> {
 
   @override
   void dispose() {
+    _registerBloc.close();
     controllerEmail.dispose();
     controllerSenha.dispose();
     controllerName.dispose();

@@ -12,6 +12,8 @@ import 'package:Box4Pets/src/pages/home/models/app_ativacao_model.dart';
 import 'package:Box4Pets/src/pages/tracos/views/tracos.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/bloc/tracos_doencas_bloc.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/view/components/pdf_viwer_page.dart';
+import 'package:Box4Pets/src/pages/parentesco/views/parentesco_screen.dart';
+import 'package:Box4Pets/src/pages/tracos_doencas/view/components/pdf_perfil_dna.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/view/components/shared_certificado.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/view/components/shared_component.dart';
 import 'package:flutter/material.dart';
@@ -50,6 +52,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
   bool _resultadoGenerated = false;
   bool _isGeneratingResultado = false;
   String? _resultadoPath;
+  bool _isDnaGenerating = false;
   late final TracosDoencasBloc _tracosDoencasBloc;
   List<String> doenca_uma_variante = [];
   List<String> doenca_duas_variante = [];
@@ -674,6 +677,52 @@ class _TracosDoencasState extends State<TracosDoencas> {
                         subTitle:
                             'Várias características corporais tais como o formato da cabeça e da cauda são influenciados por genes. Um número maior de genes relacionados a características corporais estão sendo constantemente estudados.',
                       ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: _buildSectionTitle(
+              'Genética Avançada',
+              'Perfil de DNA e parentesco genético',
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                _ActionRow(
+                  icon: Icons.biotech_rounded,
+                  iconColor: const Color(0xFF7C3AED),
+                  title: 'Perfil de DNA',
+                  subtitle: 'Gera o relatório completo de marcadores',
+                  onTap: () async {
+                    if (_isDnaGenerating) return;
+                    setState(() => _isDnaGenerating = true);
+                    try {
+                      await reportViewDNA(
+                        context,
+                        ativacao: widget.ativacao,
+                      );
+                    } finally {
+                      if (mounted) setState(() => _isDnaGenerating = false);
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                _ActionRow(
+                  icon: Icons.family_restroom_rounded,
+                  iconColor: const Color(0xFF0EA5E9),
+                  title: 'Teste de Parentesco',
+                  subtitle: 'Verifique a relação genética entre pets',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ParentescoScreen(),
                     ),
                   ),
                 ),
@@ -1382,114 +1431,6 @@ class _TracoRow extends StatelessWidget {
             ),
             Icon(Icons.chevron_right_rounded,
                 color: AppColor.primary.withOpacity(0.4), size: 22),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ShareOptionCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final bool ready;
-  final VoidCallback onTap;
-  const _ShareOptionCard({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.ready,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF3EEFC),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: ready
-                ? iconColor.withOpacity(0.3)
-                : Colors.transparent,
-            width: 1.2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.14),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.dmSans(
-                      color: AppColor.primary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.archivo(
-                      color: AppColor.primary.withOpacity(0.55),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (ready)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.14),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_rounded, color: iconColor, size: 12),
-                    const SizedBox(width: 3),
-                    Text(
-                      'Pronto',
-                      style: TextStyle(
-                        color: iconColor,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 10.5,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              Icon(Icons.chevron_right_rounded,
-                  color: AppColor.primary.withOpacity(0.4), size: 22),
           ],
         ),
       ),

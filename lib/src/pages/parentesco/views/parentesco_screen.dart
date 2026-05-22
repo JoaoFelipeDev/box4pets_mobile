@@ -40,6 +40,12 @@ class _ParentescoScreenState extends State<ParentescoScreen> {
   }
 
 
+  @override
+  void dispose() {
+    _parentescoBloc.close();
+    super.dispose();
+  }
+
   validate(){
     String email =  emailController.text;
     if(email.isEmpty){

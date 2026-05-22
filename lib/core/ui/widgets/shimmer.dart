@@ -99,12 +99,16 @@ class SmartNetworkImage extends StatelessWidget {
   final String? url;
   final BoxFit fit;
   final Alignment alignment;
+  final int? cacheWidth;
+  final int? cacheHeight;
 
   const SmartNetworkImage({
     super.key,
     required this.url,
     this.fit = BoxFit.cover,
     this.alignment = Alignment.center,
+    this.cacheWidth,
+    this.cacheHeight,
   });
 
   @override
@@ -118,6 +122,8 @@ class SmartNetworkImage extends StatelessWidget {
             url!,
             fit: fit,
             alignment: alignment,
+            cacheWidth: cacheWidth ?? 400,
+            cacheHeight: cacheHeight,
             frameBuilder: (context, child, frame, wasSync) {
               if (wasSync) return child;
               return AnimatedOpacity(

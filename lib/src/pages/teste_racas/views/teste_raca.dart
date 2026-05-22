@@ -305,6 +305,12 @@ class _TesteRacaState extends State<TesteRaca> {
     );
   }
 
+  @override
+  void dispose() {
+    _testeRacasBloc.close();
+    super.dispose();
+  }
+
   Future<void> _share() async {
     HapticFeedback.selectionClick();
     try {

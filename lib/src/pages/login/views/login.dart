@@ -1,4 +1,5 @@
 import 'package:Box4Pets/config/app_color.dart';
+import 'package:Box4Pets/debug_agent_log.dart';
 import 'package:Box4Pets/core/ui/widgets/welcome_transition.dart';
 import 'package:Box4Pets/service/util_service.dart';
 import 'package:Box4Pets/src/pages/base/base.dart';
@@ -12,7 +13,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:uuid/uuid.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -39,6 +39,7 @@ class _LoginState extends State<Login> {
 
   @override
   void dispose() {
+    _authBloc.close();
     controllerEmail.dispose();
     controllerEmailRecover.dispose();
     controllerSenha.dispose();
@@ -59,7 +60,7 @@ class _LoginState extends State<Login> {
   }
 
   void _validarAuth() {
-    final email = controllerEmail.text;
+    final email = controllerEmail.text.trim();
     final password = controllerSenha.text;
 
     if (email.isEmpty && password.isEmpty) {
@@ -74,6 +75,12 @@ class _LoginState extends State<Login> {
       return _showError('Senha precisa ter ao menos 6 caracteres');
     }
     HapticFeedback.mediumImpact();
+    agentDebugLog(
+      location: 'login.dart:_validarAuth',
+      message: 'login submitted',
+      hypothesisId: 'H-C',
+      data: {'emailLength': email.length},
+    );
     _authBloc.add(AuthEvent(auth: AuthModel(email: email, senha: password)));
   }
 
@@ -177,6 +184,12 @@ class _LoginState extends State<Login> {
       body: BlocListener<AuthBlocBloc, AuthBlocState>(
         bloc: _authBloc,
         listener: (context, state) {
+          agentDebugLog(
+            location: 'login.dart:BlocListener',
+            message: 'auth state changed',
+            hypothesisId: 'H-B',
+            data: {'state': state.runtimeType.toString()},
+          );
           if (state is AuthBlocLoaded) {
             if (state.isAuthenticated) {
               Navigator.of(context).pushAndRemoveUntil(

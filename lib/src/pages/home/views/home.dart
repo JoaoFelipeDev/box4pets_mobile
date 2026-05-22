@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -23,12 +22,12 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../destaques/views/components/screen_expanded.dart';
+import '../../profile_dog/views/profile_dog.dart';
 import '../repositories/app_ativacao_repository.dart';
 
-enum _HomeTab { emAnalise, resultados }
+enum _HomeTab { aguardandoSwab, emAnalise, resultados }
 
 class _PetActionData {
   final String label;
@@ -47,14 +46,10 @@ class _GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final double borderRadius;
-  final double opacity;
-  final double blur;
   const _GlassCard({
     required this.child,
     this.padding = const EdgeInsets.all(14),
     this.borderRadius = 22,
-    this.opacity = 0.55,
-    this.blur = 24,
   });
 
   @override
@@ -62,11 +57,11 @@ class _GlassCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(opacity),
+            color: Colors.white.withOpacity(0.55),
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
               color: Colors.white.withOpacity(0.55),
@@ -104,7 +99,6 @@ class _HomeState extends State<Home> {
   String _searchQuery = '';
   int _carouselIndex = 0;
   int _selectedPetIndex = 0;
-  String _userName = '';
   String? _localPhotoPath;
   AppAtivacaoLoaded? _lastLoaded;
   late final PageController _carouselController;
@@ -116,18 +110,6 @@ class _HomeState extends State<Home> {
     _appAtivacaoBloc = AppAtivacaoBloc()..add(AppAtivacaoGetEvent());
     _carouselController = PageController(initialPage: 0);
     _petStripController = ScrollController();
-
-    final rawUser = box.read('user');
-    if (rawUser is String && rawUser.isNotEmpty) {
-      try {
-        final map = jsonDecode(rawUser) as Map<String, dynamic>;
-        _userName = (map['name'] ??
-                map['Nome'] ??
-                map['Nome completo'] ??
-                '')
-            .toString();
-      } catch (_) {}
-    }
 
     final savedPhoto = box.read('profile_photo_path');
     if (savedPhoto is String &&
@@ -141,6 +123,7 @@ class _HomeState extends State<Home> {
 
   @override
   void dispose() {
+    _appAtivacaoBloc.close();
     _carouselController.dispose();
     _petStripController.dispose();
     super.dispose();
@@ -305,13 +288,6 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<String> _storagePath() async {
-    final directory = Platform.isAndroid
-        ? await getExternalStorageDirectory()
-        : await getApplicationDocumentsDirectory();
-    return directory!.path;
-  }
-
   void _openModalVersion() {
     showCupertinoDialog(
       context: context,
@@ -349,16 +325,6 @@ class _HomeState extends State<Home> {
     setState(() => _selectedTab = tab);
   }
 
-  void _onQuickAction(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$label: selecione um pet primeiro'),
-        backgroundColor: AppColor.primary,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AppAtivacaoBloc, AppAtivacaoState>(
@@ -385,9 +351,16 @@ class _HomeState extends State<Home> {
           final pets = allPets.where((p) {
             final s = (p.status_aplicativo ?? '').toLowerCase();
             final isLiberado = s.contains('liberado');
-            final matchesTab = _selectedTab == _HomeTab.emAnalise
-                ? !isLiberado
-                : isLiberado;
+            final isSwab = s.contains('swab');
+            bool matchesTab;
+            switch (_selectedTab) {
+              case _HomeTab.aguardandoSwab:
+                matchesTab = isSwab;
+              case _HomeTab.emAnalise:
+                matchesTab = !isLiberado && !isSwab;
+              case _HomeTab.resultados:
+                matchesTab = isLiberado;
+            }
             if (!matchesTab) return false;
             if (q.isEmpty) return true;
             return p.name.toLowerCase().contains(q) ||
@@ -508,12 +481,18 @@ class _HomeState extends State<Home> {
   }
 
   Widget _buildTabsRow() {
-    return Row(
-      children: [
-        _buildTab('Em Análise', _HomeTab.emAnalise),
-        const SizedBox(width: 8),
-        _buildTab('Resultados', _HomeTab.resultados),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _buildTab('Aguardando Swab', _HomeTab.aguardandoSwab),
+          const SizedBox(width: 8),
+          _buildTab('Em Análise', _HomeTab.emAnalise),
+          const SizedBox(width: 8),
+          _buildTab('Resultados', _HomeTab.resultados),
+        ],
+      ),
     ).animate(delay: 160.ms).fadeIn(duration: 350.ms);
   }
 
@@ -692,17 +671,36 @@ class _HomeState extends State<Home> {
         children: [
           Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFFE7DDF8),
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProfileDog(
+                        dog: pet,
+                        testeRaca: pet.resultadoRaca,
+                        testeTracosDoencas: pet.resultado,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFE7DDF8),
+                    border: Border.all(
+                      color: AppColor.primary.withOpacity(0.25),
+                      width: 1.5,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: pet.url != null
+                      ? SmartNetworkImage(url: pet.url)
+                      : Icon(Icons.pets, color: AppColor.primary, size: 22),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: pet.url != null
-                    ? SmartNetworkImage(url: pet.url)
-                    : Icon(Icons.pets, color: AppColor.primary, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -815,16 +813,30 @@ class _HomeState extends State<Home> {
   }
 
   Widget _buildEmptyFilterCard() {
-    final isAnalise = _selectedTab == _HomeTab.emAnalise;
     final hasSearch = _searchQuery.trim().isNotEmpty;
-    final title = hasSearch
-        ? 'Nenhum resultado'
-        : (isAnalise ? 'Nenhum pet em análise' : 'Nenhum resultado liberado');
-    final subtitle = hasSearch
-        ? 'Tente outro nome, raça ou cliente'
-        : (isAnalise
-            ? 'Todos os pets já têm resultados liberados'
-            : 'Os resultados aparecem aqui quando ficam prontos');
+    final String title;
+    final String subtitle;
+    final IconData icon;
+    if (hasSearch) {
+      title = 'Nenhum resultado';
+      subtitle = 'Tente outro nome, raça ou cliente';
+      icon = Icons.search_off_rounded;
+    } else {
+      switch (_selectedTab) {
+        case _HomeTab.aguardandoSwab:
+          title = 'Nenhum pet aguardando swab';
+          subtitle = 'Pets aguardando coleta aparecem aqui';
+          icon = Icons.hourglass_top_rounded;
+        case _HomeTab.emAnalise:
+          title = 'Nenhum pet em análise';
+          subtitle = 'Todos os pets já têm resultados liberados';
+          icon = Icons.hourglass_empty_rounded;
+        case _HomeTab.resultados:
+          title = 'Nenhum resultado liberado';
+          subtitle = 'Os resultados aparecem aqui quando ficam prontos';
+          icon = Icons.task_alt_rounded;
+      }
+    }
     return _GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       borderRadius: 22,
@@ -833,16 +845,12 @@ class _HomeState extends State<Home> {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFE7DDF8),
+              color: Color(0xFFE7DDF8),
             ),
             child: Icon(
-              hasSearch
-                  ? Icons.search_off_rounded
-                  : (isAnalise
-                      ? Icons.hourglass_empty_rounded
-                      : Icons.task_alt_rounded),
+              icon,
               color: AppColor.primary,
               size: 22,
             ),
@@ -924,43 +932,6 @@ class _HomeState extends State<Home> {
         ],
       ),
     ).animate(delay: 240.ms).fadeIn(duration: 380.ms);
-  }
-
-  Widget _quickActionButton({
-    required String label,
-    required IconData icon,
-    required Color background,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 60,
-        height: 60,
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 8.5,
-                height: 1.05,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildContentCarousel(List<BlogModel> blog) {
