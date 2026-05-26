@@ -12,7 +12,7 @@ Migrar o app de um layout "antigo" (Figma não bem replicado) para uma identidad
 
 - Flutter SDK 3.41.9 + Dart 3.11.5 instalados.
 - Xcode 26.5, assinatura via Personal Team (Apple ID `erichprates@yahoo.com.br` / "CARLITO PAES").
-- Bundle ID de dev: `com.erichprates.box4pets.dev`.
+- Bundle ID de dev: `br.com.box4pets.box4Pets`.
 - Deploy testado em:
   - Simulator iPhone 17 Pro (`9BA077A5-BDFA-426E-B08C-C75704769885`)
   - iPhone físico de Erich (`00008140-001A60381407001C`)
