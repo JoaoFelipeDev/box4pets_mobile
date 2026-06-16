@@ -1,3 +1,4 @@
+import 'package:Box4Pets/http/airtable_catalog_view.dart';
 import 'package:Box4Pets/http/endpoint_dio.dart';
 import 'package:dio/dio.dart';
 
@@ -11,8 +12,12 @@ class TracosRepository {
       _especie = "_gato";
     }
     try {
-      final Response<dynamic> response = await http.dio
-          .get('/app_lista_tracos$_especie?filterByFormula=Categoria="$id"');
+      final Response<dynamic> response = await http.dio.get(
+        '/app_lista_tracos$_especie',
+        queryParameters: airtableCatalogParams({
+          'filterByFormula': 'Categoria="$id"',
+        }),
+      );
       return response;
     } on DioException catch (e) {
       return e.response!;

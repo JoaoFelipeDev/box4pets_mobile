@@ -1,3 +1,4 @@
+import 'package:Box4Pets/http/airtable_catalog_view.dart';
 import 'package:Box4Pets/http/endpoint_dio.dart';
 import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
@@ -30,8 +31,12 @@ class AppListaDoencaRepository {
      
       // var  jsonMap = json.decode(conteudo);
       // print(jsonMap);
-      final Response<dynamic> response = await http.dio
-          .get('/app_lista_doenca$especie?filterByFormula=Marcador="$result"');
+      final Response<dynamic> response = await http.dio.get(
+        '/app_lista_doenca$especie',
+        queryParameters: airtableCatalogParams({
+          'filterByFormula': 'Marcador="$result"',
+        }),
+      );
       return response;
     } on DioException catch (e) {
       return e.response!;

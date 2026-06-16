@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:Box4Pets/http/airtable_catalog_view.dart';
 import 'package:Box4Pets/http/endpoint_dio.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/models/list_tracos_pdf.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/view/components/pdf_viwer_page.dart';
@@ -23,7 +24,13 @@ Future getDoencas(String id) async {
       await http.dio.get('/app_lista_doenca/$id');
   var result = responseId.data['fields']['Marcador'];
   final Response<dynamic> response = await http.dio.get(
-      '/app_lista_doenca?filterByFormula=Marcador="$result"&sort%5B0%5D%5Bfield%5D=Categoria&sort%5B0%5D%5Bdirection%5D=asc');
+    '/app_lista_doenca',
+    queryParameters: airtableCatalogParams({
+      'filterByFormula': 'Marcador="$result"',
+      'sort[0][field]': 'Categoria',
+      'sort[0][direction]': 'asc',
+    }),
+  );
   return response.data['records'][0];
 }
 
@@ -32,29 +39,35 @@ Future getDoencasGato(String id) async {
       await http.dio.get('/app_lista_doenca_gato/$id');
   var result = responseId.data['fields']['Marcador'];
   final Response<dynamic> response = await http.dio.get(
-      '/app_lista_doenca_gato?filterByFormula=Marcador="$result"&sort%5B0%5D%5Bfield%5D=Categoria&sort%5B0%5D%5Bdirection%5D=asc');
+    '/app_lista_doenca_gato',
+    queryParameters: airtableCatalogParams({
+      'filterByFormula': 'Marcador="$result"',
+      'sort[0][field]': 'Categoria',
+      'sort[0][direction]': 'asc',
+    }),
+  );
   return response.data['records'][0];
 }
 
 Future getTracos() async {
   final Response<dynamic> response = await http.dio.get(
     '/app_lista_tracos',
-    queryParameters: {
+    queryParameters: airtableCatalogParams({
       'sort[0][field]': 'Categoria',
       'sort[0][direction]': 'asc',
-    },
+    }),
   );
   return response.data['records'];
 }
 
 Future getTracosGatos() async {
   final Response<dynamic> response = await http.dio.get(
-      '/app_lista_tracos_gato',
-      queryParameters: {
+    '/app_lista_tracos_gato',
+    queryParameters: airtableCatalogParams({
       'sort[0][field]': 'Categoria',
       'sort[0][direction]': 'asc',
-    },
-      );
+    }),
+  );
   return response.data['records'];
 }
 
@@ -64,11 +77,11 @@ Future<List<dynamic>> getTodasDoencas() async {
 
   // Loop para buscar todas as páginas
   do {
-    final queryParameters = {
+    final queryParameters = airtableCatalogParams({
       'sort[0][field]': 'Categoria',
       'sort[0][direction]': 'asc',
       if (offset != null) 'offset': offset,
-    };
+    });
 
     // Realiza a requisição com ou sem o offset
     final Response<dynamic> response = await  http.dio.get(
@@ -90,7 +103,12 @@ Future<List<dynamic>> getTodasDoencas() async {
 
 Future getTodasDoencasGato() async {
   final Response<dynamic> response = await http.dio.get(
-      '/app_lista_doenca_gato?sort%5B0%5D%5Bfield%5D=Categoria&sort%5B0%5D%5Bdirection%5D=asc');
+    '/app_lista_doenca_gato',
+    queryParameters: airtableCatalogParams({
+      'sort[0][field]': 'Categoria',
+      'sort[0][direction]': 'asc',
+    }),
+  );
   return response.data['records'];
 }
 
