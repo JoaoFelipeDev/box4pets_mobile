@@ -20,14 +20,6 @@ workflows:
       flutter: 3.47.4
       xcode: latest
       cocoapods: default
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: true
-      cancel_previous_builds: true
     scripts:
       - name: Create .env from Codemagic secrets
         script: |
