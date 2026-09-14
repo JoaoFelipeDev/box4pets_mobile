@@ -29,15 +29,13 @@ workflows:
       - name: Create .env from Codemagic secrets
         script: |
           set -euo pipefail
-          : "${AIRTABLE_BASE_URL:?Defina AIRTABLE_BASE_URL no grupo box4pets_secrets}"
-          : "${AIRTABLE_TOKEN:?Defina AIRTABLE_TOKEN no grupo box4pets_secrets}"
-          : "${SMTP_USER:?Defina SMTP_USER no grupo box4pets_secrets}"
-          : "${SMTP_PASSWORD:?Defina SMTP_PASSWORD no grupo box4pets_secrets}"
+          : "${AIRTABLE_BASE_URL:?Crie o grupo box4pets_secrets no Codemagic com AIRTABLE_BASE_URL}"
+          : "${AIRTABLE_TOKEN:?Crie o grupo box4pets_secrets no Codemagic com AIRTABLE_TOKEN}"
           printf '%s\n' \
             "AIRTABLE_BASE_URL=${AIRTABLE_BASE_URL}" \
             "AIRTABLE_TOKEN=${AIRTABLE_TOKEN}" \
-            "SMTP_USER=${SMTP_USER}" \
-            "SMTP_PASSWORD=${SMTP_PASSWORD}" \
+            "SMTP_USER=${SMTP_USER:-}" \
+            "SMTP_PASSWORD=${SMTP_PASSWORD:-}" \
             > .env
       - name: Set up keychain for code signing
         script: keychain initialize
