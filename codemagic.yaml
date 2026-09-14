@@ -16,10 +16,9 @@ workflows:
       vars:
         BUNDLE_ID: br.com.box4pets.box4Pets
         BUNDLE_ID_EXTENSION: br.com.box4pets.box4Pets.NotificationExtension
-        APP_STORE_APPLE_ID: "6467569454"
-        APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS: "--use-old-altool"
+        BOX4PETS_APPLE_ID: "6467569454"
       flutter: 3.47.4
-      xcode: latest
+      xcode: 16.4
       cocoapods: default
     scripts:
       - name: Create .env from Codemagic secrets
@@ -37,9 +36,9 @@ workflows:
         script: xcode-project use-profiles
       - name: Check App Store Connect access
         script: |
-          echo "API key should see app $APP_STORE_APPLE_ID ($BUNDLE_ID)"
-          app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" --all-versions \
-            || echo "WARN: a chave code_magic nao acessa o app $APP_STORE_APPLE_ID"
+          echo "API key should see app $BOX4PETS_APPLE_ID ($BUNDLE_ID)"
+          app-store-connect get-latest-app-store-build-number "$BOX4PETS_APPLE_ID" --all-versions \
+            || echo "WARN: a chave code_magic nao acessa o app $BOX4PETS_APPLE_ID"
       - name: Get Flutter packages
         script: flutter pub get
       - name: Install CocoaPods dependencies
@@ -52,7 +51,7 @@ workflows:
           PUBSPEC_BUILD="${PUBSPEC_VERSION##*+}"
 
           LATEST_TF=$(app-store-connect get-latest-testflight-build-number \
-            "$APP_STORE_APPLE_ID" --all-versions || true)
+            "$BOX4PETS_APPLE_ID" --all-versions || true)
           if [ -n "${LATEST_TF:-}" ] && [ "$LATEST_TF" -eq "$LATEST_TF" ] 2>/dev/null; then
             BUILD_NUMBER=$((LATEST_TF + 1))
           else
@@ -65,11 +64,15 @@ workflows:
             --build-name="$MARKETING_VERSION" \
             --build-number="$BUILD_NUMBER" \
             --export-options-plist=/Users/builder/export_options.plist
+      - name: Publish IPA to TestFlight
+        script: |
+          set -euo pipefail
+          IPA=$(ls "$CM_BUILD_DIR"/build/ios/ipa/*.ipa | head -n 1)
+          echo "Publishing $IPA with Xcode $(xcodebuild -version | tr '\n' ' ')"
+          app-store-connect publish \
+            --path "$IPA" \
+            --testflight \
+            --altool-additional-arguments "--use-old-altool"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        submit_to_app_store: false
