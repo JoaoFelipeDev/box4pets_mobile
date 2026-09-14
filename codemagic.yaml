@@ -76,14 +76,10 @@ workflows:
 
           echo "Publishing $IPA"
           echo "DEVELOPER_DIR=${DEVELOPER_DIR:-default}"
+          echo "ASC key id: ${APP_STORE_CONNECT_KEY_IDENTIFIER:-unset}"
           xcodebuild -version || true
           xcrun --find altool || true
 
-          mkdir -p "$HOME/.appstoreconnect/private_keys"
-          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
-          printf '%s\n' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
-
-          # O "=" evita o argparse tratar --use-old-altool como outra flag.
           app-store-connect publish \
             --path "$IPA" \
             --testflight \
