@@ -18,7 +18,7 @@ workflows:
         BUNDLE_ID_EXTENSION: br.com.box4pets.box4Pets.NotificationExtension
         BOX4PETS_APPLE_ID: "6467569454"
       flutter: 3.47.4
-      xcode: 16.4
+      xcode: latest
       cocoapods: default
     scripts:
       - name: Create .env from Codemagic secrets
@@ -68,7 +68,11 @@ workflows:
         script: |
           set -euo pipefail
           IPA=$(ls "$CM_BUILD_DIR"/build/ios/ipa/*.ipa | head -n 1)
-          echo "Publishing $IPA with Xcode $(xcodebuild -version | tr '\n' ' ')"
+          if [ -d /Applications/Xcode-16.4.app ]; then
+            export DEVELOPER_DIR=/Applications/Xcode-16.4.app/Contents/Developer
+          fi
+          echo "Publishing $IPA with $(xcodebuild -version | tr '\n' ' ')"
+          echo "altool: $(xcrun --find altool)"
           app-store-connect publish \
             --path "$IPA" \
             --testflight \
