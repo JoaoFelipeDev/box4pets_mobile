@@ -35,6 +35,7 @@ const List<String> testes = [
   'Painel Saúde + Painel Origem',
   'Painel de Raça Específica',
   'Teste Único',
+  'Teste Merle Completo (Merle Oculto)',
   'Perfil de DNA',
   'Teste Genético ALKC RI (registro inicial): Identificação de Raça - Origem',
   'Teste Genético ALKC: Identificação de Doenças, Traços e Perfil de DNA',

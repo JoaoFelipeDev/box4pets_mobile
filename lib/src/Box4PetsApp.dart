@@ -28,7 +28,7 @@ class _Box4PetsAppState extends State<Box4PetsApp> {
   final box = GetStorage();
   @override
   void initState() {
-    box.write('version', '2.0.1');
+    box.write('version', '2.0.2');
     super.initState();
   }
 
@@ -40,12 +40,6 @@ class _Box4PetsAppState extends State<Box4PetsApp> {
         return MaterialApp(
           theme: ThemeData(
             scaffoldBackgroundColor: const Color(0xffDADADA),
-            pageTransitionsTheme: const PageTransitionsTheme(
-              builders: {
-                TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-                TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-              },
-            ),
             textTheme: GoogleFonts.archivoTextTheme().copyWith(
               displayLarge: GoogleFonts.dmSans(
                   fontWeight: FontWeight.w600, letterSpacing: -2.3),

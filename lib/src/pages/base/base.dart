@@ -8,7 +8,6 @@ import 'package:Box4Pets/src/pages/home/views/home.dart';
 import 'package:Box4Pets/src/pages/profile/views/profile.dart';
 import 'package:Box4Pets/src/pages/tracos_filtro/views/tracos_filtro.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class Base extends StatefulWidget {
   const Base({Key? key}) : super(key: key);
@@ -85,18 +84,18 @@ class _ModernBottomNav extends StatelessWidget {
   static final _items = <_NavItemData>[
     _NavItemData(
       label: 'Início',
-      iconOutline: FontAwesomeIcons.dog,
-      iconFilled: FontAwesomeIcons.dog,
+      iconOutline: Icons.pets_outlined,
+      iconFilled: Icons.pets,
     ),
     _NavItemData(
       label: 'Descubra',
-      iconOutline: FontAwesomeIcons.paw,
-      iconFilled: FontAwesomeIcons.paw,
+      iconOutline: Icons.explore_outlined,
+      iconFilled: Icons.explore,
     ),
     _NavItemData(
       label: 'Doenças & Traços',
-      iconOutline: FontAwesomeIcons.dna,
-      iconFilled: FontAwesomeIcons.dna,
+      iconOutline: Icons.biotech_outlined,
+      iconFilled: Icons.biotech,
       isLauncher: true,
     ),
     _NavItemData(

@@ -5,13 +5,11 @@ import 'package:Box4Pets/http/airtable_catalog_view.dart';
 import 'package:Box4Pets/http/endpoint_dio.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/models/list_tracos_pdf.dart';
 import 'package:Box4Pets/src/pages/tracos_doencas/view/components/pdf_viwer_page.dart';
+import 'package:Box4Pets/src/pages/tracos_doencas/view/components/resultado_saude_pdf.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/pdf.dart';
 import 'dart:io';
-import 'package:pdf/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart' as material;
 
@@ -319,15 +317,9 @@ reportView(
   );
 
   int index = 5;
-  final traco = tracos
-      .map((e) => [e.categoria, e.tracos, e.gene, e.variante, e.resultado])
-      .toList();
   List<dynamic> result = ativacao.especie == "Felina"
       ? await getTodasDoencasGato()
       : await getTodasDoencas();
-  final umaVarianteData = uma_variante
-      .map((e) => [e.categoria, e.doenca, e.gene, e.variante, e.resultado])
-      .toList();
   change('Buscando resultados de Todas as doenças genéticas avaliadas', false,
       index);
 
@@ -393,371 +385,40 @@ reportView(
     maxConcurrent: 3,
   );
 
-  final duasVarianteData = duas_variante
-      .map((e) => [e.categoria, e.doenca, e.gene, e.variante, e.resultado])
-      .toList();
-  final principaisData = principais_caracteristicas
-      .map((e) => [e.categoria, e.doenca, e.gene, e.variante, e.resultado])
-      .toList();
-  final todasData = todas_doencas
-      .map((e) => [e.categoria, e.doenca, e.gene, e.variante, e.resultado])
-      .toList();
-
+  change('Montando o relatório', false, 95);
   final ByteData image =
       await rootBundle.load('assets/images/logoB4p_centralizado.png');
+  final pdfBytes = await buildResultadoSaudePdf(
+    logoBytes: image.buffer.asUint8List(),
+    name: name,
+    ativacao: ativacao,
+    user: user,
+    umaVariante: uma_variante,
+    duasVariante: duas_variante,
+    principais: principais_caracteristicas,
+    todas: todas_doencas,
+    tracos: tracos,
+  );
 
-  Uint8List imageData = (image).buffer.asUint8List();
-  List<List<dynamic>> allData = [
-    ...duasVarianteData,
-    ...principaisData,
-    ...todasData
-  ];
-  int itemsPerPage = 20;
-  final pdf = Document();
-  // for de umaVarianteData
-  for (int i = 0; i < umaVarianteData.length; i += itemsPerPage) {
-    pdf.addPage(
-      MultiPage(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          header: (Context context) {
-            return Container(
-                margin: const EdgeInsets.only(bottom: 1.0 * PdfPageFormat.cm),
-                alignment: Alignment.centerRight,
-                child: Row(children: [
-                  pw.Image(pw.MemoryImage(imageData), height: 50),
-                  SizedBox(width: 20),
-                  SizedBox(
-                    width: 400,
-                    child: Text(
-                        'SAÚDE: Traços e Doenças - Nome do Pet: $name - Número do Swab: ${ativacao.Case_ID} Nasc.: ${ativacao.nascimento} Espécie: ${ativacao.especie} - Raça: ${ativacao.raca} - Registro: ${ativacao.registro} - Microchip: ${ativacao.chip} Nome do Tutor: ${ativacao.nome_cliente} - Endereço: ${user.endereco} ',
-                        style: TextStyle(fontSize: 10)),
-                  )
-                ]));
-          },
-          footer: (Context context) {
-            return Container(
-                alignment: Alignment.centerRight,
-                margin: const EdgeInsets.only(top: 1.0 * PdfPageFormat.cm),
-                child: Column(children: [
-                  Container(width: double.infinity, height: 3),
-                  Row(
-                    children: [
-                      Text(
-                          'Resultados revisados e confirmados por Dr. Lucas Rodrigues, DVM, MS, PhD, CRMV-SP 15446'),
-                    ],
-                  ),
-                ]));
-          },
-          build: (Context context) => <Widget>[
-                Padding(padding: const EdgeInsets.all(10)),
-                Text('Uma variante detectada', style: TextStyle(fontSize: 18)),
-                Padding(padding: const EdgeInsets.all(10)),
-                TableHelper.fromTextArray(
-                    cellAlignment: pw.Alignment.center,
-                    cellDecoration: (index, data, rowNum) => pw.BoxDecoration(
-                          border:
-                              pw.Border.all(width: 0.5, color: PdfColors.grey),
-                          borderRadius:
-                              pw.BorderRadius.all(pw.Radius.circular(5)),
-                        ),
-                    border: pw.TableBorder(verticalInside: BorderSide.none),
-                    context: context,
-                    headers: [
-                      'Categoria',
-                      'Doença',
-                      'Gene',
-                      'Variante',
-                      'Resultado'
-                    ],
-                    defaultColumnWidth: FixedColumnWidth(200),
-                    data: umaVarianteData.sublist(
-                        i,
-                        i + itemsPerPage > umaVarianteData.length
-                            ? umaVarianteData.length
-                            : i + itemsPerPage)),
-                Padding(padding: const EdgeInsets.all(10)),
-              ]),
+  stopwatch.stop();
+  print(
+      'Tempo total para gerar PDF: \x1B[32m${stopwatch.elapsedMilliseconds} ms (${(stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(2)} s)\x1B[0m');
+  change('Finalizando documento.', true, 99);
+  final String dir = (await getApplicationDocumentsDirectory()).path;
+  final String path = '$dir/Resultado_${ativacao.name}.pdf';
+  final File file = File(path);
+
+  await file.writeAsBytes(pdfBytes);
+  box.write('Resultado_v4_${ativacao.name}.pdf', path);
+
+  if (onComplete != null) {
+    onComplete(path);
+  } else {
+    material.Navigator.of(context).push(
+      material.MaterialPageRoute(
+        builder: (_) => PdfViwerPage(path: path),
+      ),
     );
-    for (int i = 0; i < duasVarianteData.length; i += itemsPerPage) {
-      pdf.addPage(
-        MultiPage(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            header: (Context context) {
-              return Container(
-                  margin: const EdgeInsets.only(bottom: 1.0 * PdfPageFormat.cm),
-                  alignment: Alignment.centerRight,
-                  child: Row(children: [
-                    pw.Image(pw.MemoryImage(imageData), height: 50),
-                    SizedBox(width: 20),
-                    SizedBox(
-                      width: 400,
-                      child: Text(
-                          'SAÚDE: Traços e Doenças - Nome do Pet: $name - Número do Swab: ${ativacao.Case_ID} Nasc.: ${ativacao.nascimento} Espécie: ${ativacao.especie} - Raça: ${ativacao.raca} - Registro: ${ativacao.registro} - Microchip: ${ativacao.chip} Nome do Tutor: ${ativacao.nome_cliente} - Endereço: ${user.endereco} ',
-                          style: TextStyle(fontSize: 10)),
-                    )
-                  ]));
-            },
-            footer: (Context context) {
-              return Container(
-                  alignment: Alignment.centerRight,
-                  margin: const EdgeInsets.only(top: 1.0 * PdfPageFormat.cm),
-                  child: Column(children: [
-                    Container(width: double.infinity, height: 3),
-                    Row(
-                      children: [
-                        Text(
-                            'Resultados revisados e confirmados por Dr. Lucas Rodrigues, DVM, MS, PhD, CRMV-SP 15446'),
-                      ],
-                    ),
-                  ]));
-            },
-            build: (Context context) => <Widget>[
-                  Padding(padding: const EdgeInsets.all(10)),
-                  Text('Duas variante detectada',
-                      style: TextStyle(fontSize: 18)),
-                  Padding(padding: const EdgeInsets.all(10)),
-                  TableHelper.fromTextArray(
-                      cellAlignment: pw.Alignment.center,
-                      cellDecoration: (index, data, rowNum) => pw.BoxDecoration(
-                            border: pw.Border.all(
-                                width: 0.5, color: PdfColors.grey),
-                            borderRadius:
-                                pw.BorderRadius.all(pw.Radius.circular(5)),
-                          ),
-                      border: pw.TableBorder(verticalInside: BorderSide.none),
-                      context: context,
-                      headers: [
-                        'Categoria',
-                        'Doença',
-                        'Gene',
-                        'Variante',
-                        'Resultado'
-                      ],
-                      defaultColumnWidth: FixedColumnWidth(200),
-                      data: duasVarianteData.sublist(
-                          i,
-                          i + itemsPerPage > duasVarianteData.length
-                              ? duasVarianteData.length
-                              : i + itemsPerPage)),
-                  Padding(padding: const EdgeInsets.all(10)),
-                ]),
-      );
-    }
-    for (int i = 0; i < principaisData.length; i += itemsPerPage) {
-      pdf.addPage(
-        MultiPage(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            header: (Context context) {
-              return Container(
-                  margin: const EdgeInsets.only(bottom: 1.0 * PdfPageFormat.cm),
-                  alignment: Alignment.centerRight,
-                  child: Row(children: [
-                    pw.Image(pw.MemoryImage(imageData), height: 50),
-                    SizedBox(width: 20),
-                    SizedBox(
-                      width: 400,
-                      child: Text(
-                          'SAÚDE: Traços e Doenças - Nome do Pet: $name - Número do Swab: ${ativacao.Case_ID} Nasc.: ${ativacao.nascimento} Espécie: ${ativacao.especie} - Raça: ${ativacao.raca} - Registro: ${ativacao.registro} - Microchip: ${ativacao.chip} Nome do Tutor: ${ativacao.nome_cliente} - Endereço: ${user.endereco} ',
-                          style: TextStyle(fontSize: 10)),
-                    )
-                  ]));
-            },
-            footer: (Context context) {
-              return Container(
-                  alignment: Alignment.centerRight,
-                  margin: const EdgeInsets.only(top: 1.0 * PdfPageFormat.cm),
-                  child: Column(children: [
-                    Container(width: double.infinity, height: 3),
-                    Row(
-                      children: [
-                        Text(
-                            'Resultados revisados e confirmados por Dr. Lucas Rodrigues, DVM, MS, PhD, CRMV-SP 15446'),
-                      ],
-                    ),
-                  ]));
-            },
-            build: (Context context) => <Widget>[
-                  Padding(padding: const EdgeInsets.all(10)),
-                  Text('Principais doenças genéticas da raça',
-                      style: TextStyle(fontSize: 18)),
-                  Padding(padding: const EdgeInsets.all(10)),
-                  TableHelper.fromTextArray(
-                      cellAlignment: pw.Alignment.center,
-                      cellDecoration: (index, data, rowNum) => pw.BoxDecoration(
-                            border: pw.Border.all(
-                                width: 0.5, color: PdfColors.grey),
-                            borderRadius:
-                                pw.BorderRadius.all(pw.Radius.circular(5)),
-                          ),
-                      border: pw.TableBorder(verticalInside: BorderSide.none),
-                      context: context,
-                      headers: [
-                        'Categoria',
-                        'Doença',
-                        'Gene',
-                        'Variante',
-                        'Resultado'
-                      ],
-                      defaultColumnWidth: FixedColumnWidth(200),
-                      data: principaisData.sublist(
-                          i,
-                          i + itemsPerPage > principaisData.length
-                              ? principaisData.length
-                              : i + itemsPerPage)),
-                  Padding(padding: const EdgeInsets.all(10)),
-                ]),
-      );
-    }
-    for (int i = 0; i < todasData.length; i += itemsPerPage) {
-      pdf.addPage(
-        MultiPage(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            header: (Context context) {
-              return Container(
-                  margin: const EdgeInsets.only(bottom: 1.0 * PdfPageFormat.cm),
-                  alignment: Alignment.centerRight,
-                  child: Row(children: [
-                    pw.Image(pw.MemoryImage(imageData), height: 50),
-                    SizedBox(width: 20),
-                    SizedBox(
-                      width: 400,
-                      child: Text(
-                          'SAÚDE: Traços e Doenças - Nome do Pet: $name - Número do Swab: ${ativacao.Case_ID} Nasc.: ${ativacao.nascimento} Espécie: ${ativacao.especie} - Raça: ${ativacao.raca} - Registro: ${ativacao.registro} - Microchip: ${ativacao.chip} Nome do Tutor: ${ativacao.nome_cliente} - Endereço: ${user.endereco} ',
-                          style: TextStyle(fontSize: 10)),
-                    )
-                  ]));
-            },
-            footer: (Context context) {
-              return Container(
-                  alignment: Alignment.centerRight,
-                  margin: const EdgeInsets.only(top: 1.0 * PdfPageFormat.cm),
-                  child: Column(children: [
-                    Container(width: double.infinity, height: 3),
-                    Row(
-                      children: [
-                        Text(
-                            'Resultados revisados e confirmados por Dr. Lucas Rodrigues, DVM, MS, PhD, CRMV-SP 15446'),
-                      ],
-                    ),
-                  ]));
-            },
-            build: (Context context) => <Widget>[
-                  Padding(padding: const EdgeInsets.all(10)),
-                  Text('Todas as doenças genéticas avaliadas',
-                      style: TextStyle(fontSize: 18)),
-                  Padding(padding: const EdgeInsets.all(10)),
-                  TableHelper.fromTextArray(
-                      cellAlignment: pw.Alignment.center,
-                      cellDecoration: (index, data, rowNum) => pw.BoxDecoration(
-                            border: pw.Border.all(
-                                width: 0.5, color: PdfColors.grey),
-                            borderRadius:
-                                pw.BorderRadius.all(pw.Radius.circular(5)),
-                          ),
-                      border: pw.TableBorder(verticalInside: BorderSide.none),
-                      context: context,
-                      headers: [
-                        'Categoria',
-                        'Doença',
-                        'Gene',
-                        'Variante',
-                        'Resultado'
-                      ],
-                      defaultColumnWidth: FixedColumnWidth(200),
-                      data: todasData.sublist(
-                          i,
-                          i + itemsPerPage > todasData.length
-                              ? todasData.length
-                              : i + itemsPerPage)),
-                  Padding(padding: const EdgeInsets.all(10)),
-                ]),
-      );
-    }
-    for (int i = 0; i < traco.length; i += itemsPerPage) {
-      pdf.addPage(
-        MultiPage(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            header: (Context context) {
-              return Container(
-                  margin: const EdgeInsets.only(bottom: 1.0 * PdfPageFormat.cm),
-                  alignment: Alignment.centerRight,
-                  child: Row(children: [
-                    pw.Image(pw.MemoryImage(imageData), height: 50),
-                    SizedBox(width: 20),
-                    SizedBox(
-                      width: 400,
-                      child: Text(
-                          'SAÚDE: Traços e Doenças - Nome do Pet: $name - Número do Swab: ${ativacao.Case_ID} Nasc.: ${ativacao.nascimento} Espécie: ${ativacao.especie} - Raça: ${ativacao.raca} - Registro: ${ativacao.registro} - Microchip: ${ativacao.chip} Nome do Tutor: ${ativacao.nome_cliente} - Endereço: ${user.endereco} ',
-                          style: TextStyle(fontSize: 10)),
-                    )
-                  ]));
-            },
-            footer: (Context context) {
-              return Container(
-                  alignment: Alignment.centerRight,
-                  margin: const EdgeInsets.only(top: 1.0 * PdfPageFormat.cm),
-                  child: Column(children: [
-                    Container(width: double.infinity, height: 3),
-                    Row(
-                      children: [
-                        Text(
-                            'Resultados revisados e confirmados por Dr. Lucas Rodrigues, DVM, MS, PhD, CRMV-SP 15446'),
-                      ],
-                    ),
-                  ]));
-            },
-            build: (Context context) => <Widget>[
-                  Padding(padding: const EdgeInsets.all(10)),
-                  Text('Traços', style: TextStyle(fontSize: 18)),
-                  Padding(padding: const EdgeInsets.all(10)),
-                  TableHelper.fromTextArray(
-                      cellAlignment: pw.Alignment.center,
-                      cellDecoration: (index, data, rowNum) => pw.BoxDecoration(
-                            border: pw.Border.all(
-                                width: 0.5, color: PdfColors.grey),
-                            borderRadius:
-                                pw.BorderRadius.all(pw.Radius.circular(5)),
-                          ),
-                      border: pw.TableBorder(verticalInside: BorderSide.none),
-                      context: context,
-                      headers: [
-                        'Categoria',
-                        'Doença',
-                        'Gene',
-                        'Variante',
-                        'Resultado'
-                      ],
-                      defaultColumnWidth: FixedColumnWidth(200),
-                      data: traco.sublist(
-                          i,
-                          i + itemsPerPage > traco.length
-                              ? traco.length
-                              : i + itemsPerPage)),
-                  Padding(padding: const EdgeInsets.all(10)),
-                ]),
-      );
-    }
-    //save PDF
-    stopwatch.stop();
-    print(
-        'Tempo total para gerar PDF: \x1B[32m${stopwatch.elapsedMilliseconds} ms (${(stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(2)} s)\x1B[0m');
-    change('Finalizando documento.', true, 99);
-    final String dir = (await getApplicationDocumentsDirectory()).path;
-    final String path = '$dir/Resultado_${ativacao.name}.pdf';
-    final File file = File(path);
-
-    await file.writeAsBytes(await pdf.save());
-    box.write('Resultado_${ativacao.name}.pdf', path);
-
-    if (onComplete != null) {
-      onComplete(path);
-    } else {
-      material.Navigator.of(context).push(
-        material.MaterialPageRoute(
-          builder: (_) => PdfViwerPage(path: path),
-        ),
-      );
-    }
-    change('', true, 0);
   }
+  change('', true, 0);
 }

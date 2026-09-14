@@ -73,7 +73,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
       _certGenerated = true;
       _certPath = existing;
     }
-    final existingResult = box.read('Resultado_${widget.ativacao.name}.pdf');
+    final existingResult = box.read('Resultado_v4_${widget.ativacao.name}.pdf');
     if (existingResult is String && existingResult.isNotEmpty) {
       _resultadoGenerated = true;
       _resultadoPath = existingResult;
@@ -179,7 +179,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
   }
 
   void _openShareOptions(TracosDoencasLoaded state) {
-    final existing = box.read('Resultado_${widget.ativacao.name}.pdf');
+    final existing = box.read('Resultado_v4_${widget.ativacao.name}.pdf');
     if (existing == null) {
       _triggerShare(state);
       return;
@@ -245,7 +245,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
               label: 'Usar relatório anterior',
               onTap: () {
                 Navigator.pop(ctx);
-                final path = box.read('Resultado_${widget.ativacao.name}.pdf');
+                final path = box.read('Resultado_v4_${widget.ativacao.name}.pdf');
                 Navigator.push(
                   context,
                   MaterialPageRoute(

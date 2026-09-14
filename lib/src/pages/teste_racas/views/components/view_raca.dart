@@ -6,7 +6,6 @@ import 'package:Box4Pets/core/ui/widgets/parallax_background.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/racas_model.dart';
@@ -493,22 +492,22 @@ class _ViewRacaState extends State<ViewRaca>
     final stats = <_StatData>[
       if (r.altura.isNotEmpty)
         _StatData(
-            icon: FontAwesomeIcons.ruler,
+            icon: Icons.straighten_rounded,
             label: 'Altura',
             value: r.altura),
       if (r.peso.isNotEmpty)
         _StatData(
-            icon: FontAwesomeIcons.weightHanging,
+            icon: Icons.monitor_weight_outlined,
             label: 'Peso',
             value: r.peso),
       if (r.expectativa_de_vida.isNotEmpty)
         _StatData(
-            icon: FontAwesomeIcons.heartPulse,
+            icon: Icons.favorite_rounded,
             label: 'Expectativa',
             value: r.expectativa_de_vida),
       if (r.popularidade.isNotEmpty)
         _StatData(
-            icon: FontAwesomeIcons.star,
+            icon: Icons.star_rounded,
             label: 'Popularidade',
             value: r.popularidade),
     ];
@@ -568,10 +567,10 @@ class _StatTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
-              child: FaIcon(
+              child: Icon(
                 data.icon,
                 color: AppColor.primary,
-                size: 13,
+                size: 16,
               ),
             ),
           ),

@@ -4,7 +4,6 @@ import 'package:Box4Pets/service/util_service.dart';
 import 'package:flutter/material.dart';
 
 import 'package:Box4Pets/src/pages/home/models/app_ativacao_model.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class ProfileDog extends StatelessWidget {
   final bool testeRaca;
@@ -214,8 +213,8 @@ class ProfileDog extends StatelessWidget {
             ),
             Row(
               children: [
-                FaIcon(
-                  FontAwesomeIcons.dog,
+                Icon(
+                  Icons.pets,
                   color: AppColor.primary,
                 ),
                 const SizedBox(
@@ -245,8 +244,8 @@ class ProfileDog extends StatelessWidget {
             ),
             Row(
               children: [
-                FaIcon(
-                  FontAwesomeIcons.person,
+                Icon(
+                  Icons.person_rounded,
                   color: AppColor.primary,
                 ),
                 const SizedBox(
@@ -276,8 +275,8 @@ class ProfileDog extends StatelessWidget {
             ),
             Row(
               children: [
-                FaIcon(
-                  FontAwesomeIcons.marsAndVenus,
+                Icon(
+                  Icons.wc_rounded,
                   color: AppColor.primary,
                 ),
                 const SizedBox(
@@ -307,8 +306,8 @@ class ProfileDog extends StatelessWidget {
             ),
             Row(
               children: [
-                FaIcon(
-                  FontAwesomeIcons.registered,
+                Icon(
+                  Icons.badge_outlined,
                   color: AppColor.primary,
                 ),
                 const SizedBox(
@@ -338,8 +337,8 @@ class ProfileDog extends StatelessWidget {
             ),
             Row(
               children: [
-                FaIcon(
-                  FontAwesomeIcons.microchip,
+                Icon(
+                  Icons.memory_rounded,
                   color: AppColor.primary,
                 ),
                 const SizedBox(
