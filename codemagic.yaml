@@ -17,6 +17,7 @@ workflows:
         BUNDLE_ID: br.com.box4pets.box4Pets
         BUNDLE_ID_EXTENSION: br.com.box4pets.box4Pets.NotificationExtension
         APP_STORE_APPLE_ID: "6467569454"
+        APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS: --apple-id 6467569454
       flutter: 3.47.4
       xcode: latest
       cocoapods: default
