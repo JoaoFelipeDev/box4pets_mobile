@@ -17,7 +17,7 @@ workflows:
         BUNDLE_ID: br.com.box4pets.box4Pets
         BUNDLE_ID_EXTENSION: br.com.box4pets.box4Pets.NotificationExtension
         APP_STORE_APPLE_ID: "6467569454"
-        APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS: --apple-id 6467569454
+        APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS: "--use-old-altool"
       flutter: 3.47.4
       xcode: latest
       cocoapods: default
@@ -35,6 +35,11 @@ workflows:
             > .env
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
+      - name: Check App Store Connect access
+        script: |
+          echo "API key should see app $APP_STORE_APPLE_ID ($BUNDLE_ID)"
+          app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" --all-versions \
+            || echo "WARN: a chave code_magic nao acessa o app $APP_STORE_APPLE_ID"
       - name: Get Flutter packages
         script: flutter pub get
       - name: Install CocoaPods dependencies
