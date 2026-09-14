@@ -82,7 +82,6 @@ workflows:
 
           app-store-connect publish \
             --path "$IPA" \
-            --testflight \
             --altool-additional-arguments=--use-old-altool
     artifacts:
       - build/ios/ipa/*.ipa
