@@ -68,15 +68,26 @@ workflows:
         script: |
           set -euo pipefail
           IPA=$(ls "$CM_BUILD_DIR"/build/ios/ipa/*.ipa | head -n 1)
-          if [ -d /Applications/Xcode-16.4.app ]; then
-            export DEVELOPER_DIR=/Applications/Xcode-16.4.app/Contents/Developer
+
+          XCODE16=$(ls -d /Applications/Xcode-16*.app 2>/dev/null | sort | tail -n 1 || true)
+          if [ -n "${XCODE16:-}" ]; then
+            export DEVELOPER_DIR="$XCODE16/Contents/Developer"
           fi
-          echo "Publishing $IPA with $(xcodebuild -version | tr '\n' ' ')"
-          echo "altool: $(xcrun --find altool)"
+
+          echo "Publishing $IPA"
+          echo "DEVELOPER_DIR=${DEVELOPER_DIR:-default}"
+          xcodebuild -version || true
+          xcrun --find altool || true
+
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+          printf '%s\n' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
+
+          # O "=" evita o argparse tratar --use-old-altool como outra flag.
           app-store-connect publish \
             --path "$IPA" \
             --testflight \
-            --altool-additional-arguments "--use-old-altool"
+            --altool-additional-arguments=--use-old-altool
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
