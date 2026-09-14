@@ -6,7 +6,7 @@ workflows:
     integrations:
       # O nome precisa ser exatamente o mesmo da chave em
       # Team settings → Team integrations → Developer Portal.
-      app_store_connect: box4pets
+      app_store_connect: code_magic
     environment:
       groups:
         - box4pets_secrets
