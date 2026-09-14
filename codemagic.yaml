@@ -6,7 +6,7 @@ workflows:
     integrations:
       # O nome precisa ser exatamente o mesmo da chave em
       # Team settings → Team integrations → Developer Portal.
-      app_store_connect: code_magic
+      app_store_connect: box4pets
     environment:
       groups:
         - box4pets_secrets
@@ -38,7 +38,7 @@ workflows:
         script: |
           echo "API key should see app $BOX4PETS_APPLE_ID ($BUNDLE_ID)"
           app-store-connect get-latest-app-store-build-number "$BOX4PETS_APPLE_ID" --all-versions \
-            || echo "WARN: a chave code_magic nao acessa o app $BOX4PETS_APPLE_ID"
+            || echo "WARN: a chave box4pets nao acessa o app $BOX4PETS_APPLE_ID"
       - name: Get Flutter packages
         script: flutter pub get
       - name: Install CocoaPods dependencies
