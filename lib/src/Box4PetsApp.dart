@@ -28,7 +28,7 @@ class _Box4PetsAppState extends State<Box4PetsApp> {
   final box = GetStorage();
   @override
   void initState() {
-    box.write('version', '2.0.2');
+    box.write('version', '2.0.3');
     super.initState();
   }
 

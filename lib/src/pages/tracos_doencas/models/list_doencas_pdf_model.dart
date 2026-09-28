@@ -17,6 +17,18 @@ class ListDoencasPdfModel {
       required this.variante,
       this.resultado});
 
+  /// Airtable usa registros sentinela (Nenhuma01/Nenhuma02) quando
+  /// não há achado real. As fórmulas de contagem ignoram esses
+  /// registros; o app precisa fazer o mesmo.
+  bool get isPlaceholder {
+    final d = doenca.trim().toLowerCase();
+    final c = categoria.trim().toLowerCase();
+    final m = marcador.trim().toLowerCase();
+    return d.contains('nenhuma variante') ||
+        c.contains('nenhuma variante') ||
+        m.startsWith('nenhuma');
+  }
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'categoria': categoria,

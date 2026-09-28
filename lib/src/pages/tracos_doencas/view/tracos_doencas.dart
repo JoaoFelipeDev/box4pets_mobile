@@ -73,7 +73,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
       _certGenerated = true;
       _certPath = existing;
     }
-    final existingResult = box.read('Resultado_v4_${widget.ativacao.name}.pdf');
+    final existingResult = box.read('Resultado_v7_${widget.ativacao.name}.pdf');
     if (existingResult is String && existingResult.isNotEmpty) {
       _resultadoGenerated = true;
       _resultadoPath = existingResult;
@@ -101,6 +101,11 @@ class _TracosDoencasState extends State<TracosDoencas> {
       principais: state.tracosDoencas.principais_doencas_geneticas_da_raca,
       todas: state.tracosDoencas.todas_doencas_geneticas_avaliadas,
       umaVariate: state.tracosDoencas.uma_variante,
+      totalGenes: state.tracosDoencas.totalGenes,
+      livres: state.tracosDoencas.genes_sem_alteracao,
+      portadores: state.tracosDoencas.gene_com_uma_variante_detectada,
+      risco: state.tracosDoencas.gene_com_duas_variante_detectada,
+      variantesRelevantesRaca: state.tracosDoencas.doencasImportantesDaRaca,
       name: widget.name,
       onComplete: (path) {
         if (_stillOnPage && mounted) {
@@ -179,7 +184,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
   }
 
   void _openShareOptions(TracosDoencasLoaded state) {
-    final existing = box.read('Resultado_v4_${widget.ativacao.name}.pdf');
+    final existing = box.read('Resultado_v7_${widget.ativacao.name}.pdf');
     if (existing == null) {
       _triggerShare(state);
       return;
@@ -245,7 +250,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
               label: 'Usar relatório anterior',
               onTap: () {
                 Navigator.pop(ctx);
-                final path = box.read('Resultado_v4_${widget.ativacao.name}.pdf');
+                final path = box.read('Resultado_v7_${widget.ativacao.name}.pdf');
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -372,6 +377,11 @@ class _TracosDoencasState extends State<TracosDoencas> {
       principais: state.tracosDoencas.principais_doencas_geneticas_da_raca,
       todas: state.tracosDoencas.todas_doencas_geneticas_avaliadas,
       umaVariate: state.tracosDoencas.uma_variante,
+      totalGenes: state.tracosDoencas.totalGenes,
+      livres: state.tracosDoencas.genes_sem_alteracao,
+      portadores: state.tracosDoencas.gene_com_uma_variante_detectada,
+      risco: state.tracosDoencas.gene_com_duas_variante_detectada,
+      variantesRelevantesRaca: state.tracosDoencas.doencasImportantesDaRaca,
       name: widget.name,
     );
   }
@@ -500,7 +510,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
             child: _buildSectionTitle(
               'Análise do DNA',
-              'Avaliamos o potencial de doenças genéticas e traços físicos',
+              'Total de ${state.tracosDoencas.totalGenes} genes analisados',
             ),
           ),
           Padding(
@@ -897,27 +907,27 @@ class _TracosDoencasState extends State<TracosDoencas> {
     final tiles = [
       _GeneTileData(
         value: '${t.genes_sem_alteracao}',
-        label: 'Genes sem alteração',
+        label: 'Livres de variantes/mutações',
         icon: Icons.check_circle_rounded,
         color: const Color(0xFF22C55E),
       ),
       _GeneTileData(
         value: '${t.gene_com_uma_variante_detectada}',
-        label: 'Portador de 1 variante',
+        label: 'Portador (1 cópia da variante)',
         icon: Icons.warning_amber_rounded,
         color: AppColor.orange,
       ),
       _GeneTileData(
         value: '${t.gene_com_duas_variante_detectada}',
-        label: 'Risco aumentado · 2 variantes',
+        label: 'Risco aumentado de doença (2 cópias da variante)',
         icon: Icons.error_outline_rounded,
         color: const Color(0xFFE85D75),
       ),
       _GeneTileData(
-        value: '${t.tracos}',
-        label: 'Traços',
-        icon: Icons.science_rounded,
-        color: AppColor.primary,
+        value: '${t.doencasImportantesDaRaca}',
+        label: 'Variantes relevantes para a raça',
+        icon: Icons.pets_rounded,
+        color: const Color(0xFF00A7C8),
       ),
     ];
     return GridView.builder(
@@ -1009,15 +1019,16 @@ class _GeneTile extends StatelessWidget {
                     builder: (context, value, _) {
                       final displayed = value.round().toString().padLeft(
                           2, '0');
+                      final compact = displayed.length >= 3;
                       return Text(
                         displayed,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.dmSans(
                           color: data.color,
                           fontWeight: FontWeight.w800,
-                          fontSize: 59,
+                          fontSize: compact ? 42 : 59,
                           height: 1.0,
-                          letterSpacing: -2.1,
+                          letterSpacing: compact ? -1.2 : -2.1,
                         ),
                       );
                     },

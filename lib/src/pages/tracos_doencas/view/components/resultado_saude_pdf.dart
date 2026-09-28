@@ -96,6 +96,11 @@ Future<Uint8List> buildResultadoSaudePdf({
   required List<ListDoencasPdfModel> principais,
   required List<ListDoencasPdfModel> todas,
   required List<ListTracosPdf> tracos,
+  required int totalGenes,
+  required int livres,
+  required int portadores,
+  required int risco,
+  required int variantesRelevantesRaca,
 }) async {
   final regular = pw.Font.ttf(
       await rootBundle.load('assets/fonts/Urbanist-Regular.ttf'));
@@ -113,23 +118,25 @@ Future<Uint8List> buildResultadoSaudePdf({
     boldItalic: bold,
   );
 
+  final uma = umaVariante.where((e) => !e.isPlaceholder).toList();
+  final duas = duasVariante.where((e) => !e.isPlaceholder).toList();
+  final todasReais = todas.where((e) => !e.isPlaceholder).toList();
+  final principaisReais = principais.where((e) => !e.isPlaceholder).toList();
+
   final findingKeys = <String>{
-    ...umaVariante.map((e) => e.marcador),
-    ...duasVariante.map((e) => e.marcador),
-    ...umaVariante.map((e) => e.doenca),
-    ...duasVariante.map((e) => e.doenca),
+    ...uma.map((e) => e.marcador),
+    ...duas.map((e) => e.marcador),
+    ...uma.map((e) => e.doenca),
+    ...duas.map((e) => e.doenca),
   };
 
   bool isFinding(ListDoencasPdfModel d) =>
       findingKeys.contains(d.marcador) || findingKeys.contains(d.doenca);
 
-  final tested = todas.isNotEmpty ? todas.length : principais.length;
-  final risco = duasVariante.length;
-  final portadores = umaVariante.length;
-  final clear = (tested - portadores - risco).clamp(0, tested);
-
   final groupedTodas = _groupBy(
-    todas.where((e) => e.doenca.trim().isNotEmpty && e.doenca != '-').toList(),
+    todasReais
+        .where((e) => e.doenca.trim().isNotEmpty && e.doenca != '-')
+        .toList(),
     (e) => e.categoria.trim().isEmpty ? 'Outros' : e.categoria.trim(),
   );
   final groupedTracos = _groupBy(
@@ -197,10 +204,11 @@ Future<Uint8List> buildResultadoSaudePdf({
         ),
         pw.SizedBox(height: 14),
         _kpiRow(
-          tested: tested,
-          clear: clear,
+          totalGenes: totalGenes,
+          livres: livres,
           portadores: portadores,
           risco: risco,
+          variantesRelevantesRaca: variantesRelevantesRaca,
           regular: regular,
           bold: bold,
         ),
@@ -211,20 +219,20 @@ Future<Uint8List> buildResultadoSaudePdf({
           style: pw.TextStyle(font: regular, fontSize: 8.5, color: _muted),
         ),
         pw.SizedBox(height: 8),
-        if (umaVariante.isEmpty && duasVariante.isEmpty)
+        if (uma.isEmpty && duas.isEmpty)
           pw.Text(
             'Nenhum achado que mereça atenção neste painel.',
             style: pw.TextStyle(font: regular, fontSize: 9, color: _muted),
           )
         else ...[
-          ...duasVariante.map((d) => _achadoCard(
+          ...duas.map((d) => _achadoCard(
                 d,
                 duasVariantes: true,
                 regular: regular,
                 semi: semi,
                 bold: bold,
               )),
-          ...umaVariante.map((d) => _achadoCard(
+          ...uma.map((d) => _achadoCard(
                 d,
                 duasVariantes: false,
                 regular: regular,
@@ -232,7 +240,7 @@ Future<Uint8List> buildResultadoSaudePdf({
                 bold: bold,
               )),
         ],
-        if (principais.isNotEmpty) ...[
+        if (principaisReais.isNotEmpty) ...[
           pw.SizedBox(height: 16),
           _sectionTitle('Principais doenças genéticas da raça', bold),
           pw.Text(
@@ -241,7 +249,7 @@ Future<Uint8List> buildResultadoSaudePdf({
           ),
           pw.SizedBox(height: 8),
           _principaisTable(
-            principais,
+            principaisReais,
             isFinding: isFinding,
             regular: regular,
             medium: medium,
@@ -252,7 +260,7 @@ Future<Uint8List> buildResultadoSaudePdf({
           pw.SizedBox(height: 16),
           _sectionTitle('Painel completo de doenças avaliadas', bold),
           pw.Text(
-            '$tested variantes testadas em ${groupedTodas.length} categorias clínicas.',
+            '${todasReais.length} variantes testadas em ${groupedTodas.length} categorias clínicas.',
             style: pw.TextStyle(font: regular, fontSize: 8.5, color: _muted),
           ),
           pw.SizedBox(height: 8),
@@ -341,17 +349,18 @@ pw.Widget _sectionTitle(String text, pw.Font bold) {
 }
 
 pw.Widget _kpiRow({
-  required int tested,
-  required int clear,
+  required int totalGenes,
+  required int livres,
   required int portadores,
   required int risco,
+  required int variantesRelevantesRaca,
   required pw.Font regular,
   required pw.Font bold,
 }) {
   pw.Widget card(String value, String label, PdfColor color) {
     return pw.Expanded(
       child: pw.Container(
-        padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: pw.BoxDecoration(
           border: pw.Border.all(color: _line, width: 0.8),
           borderRadius: pw.BorderRadius.circular(4),
@@ -366,7 +375,7 @@ pw.Widget _kpiRow({
             pw.Text(
               label,
               textAlign: pw.TextAlign.center,
-              style: pw.TextStyle(font: regular, fontSize: 7.5, color: _muted),
+              style: pw.TextStyle(font: regular, fontSize: 7, color: _muted),
             ),
           ],
         ),
@@ -374,24 +383,34 @@ pw.Widget _kpiRow({
     );
   }
 
-  return pw.Row(
+  pw.Widget pair(pw.Widget left, pw.Widget right) {
+    return pw.Row(children: [left, pw.SizedBox(width: 8), right]);
+  }
+
+  return pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
-      card('$tested', 'Genes testados', _purple),
-      pw.SizedBox(width: 8),
-      card(
-        '$clear',
-        portadores == 0
-            ? 'Nenhum portador de 1 variante'
-            : 'Portador: $portadores variante${portadores == 1 ? '' : 's'}',
-        _green,
+      pw.Text(
+        'Total de $totalGenes genes analisados',
+        style: pw.TextStyle(font: bold, fontSize: 10, color: _text),
       ),
-      pw.SizedBox(width: 8),
-      card(
-        '$risco',
-        risco == 0
-            ? 'Risco aumentado de doença:\nnenhuma com 2 variantes'
-            : 'Risco aumentado de doença:\n2 variantes',
-        _orange,
+      pw.SizedBox(height: 8),
+      pair(
+        card('$livres', 'Livres de variantes/mutações', _green),
+        card('$portadores', 'Portador (1 cópia da variante)', _orange),
+      ),
+      pw.SizedBox(height: 8),
+      pair(
+        card(
+          '$risco',
+          'Risco aumentado de doença (2 cópias da variante)',
+          PdfColor.fromInt(0xFFE85D75),
+        ),
+        card(
+          '$variantesRelevantesRaca',
+          'Variantes relevantes para a raça',
+          _teal,
+        ),
       ),
     ],
   );

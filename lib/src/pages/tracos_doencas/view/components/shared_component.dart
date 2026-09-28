@@ -155,6 +155,11 @@ reportView(
   required List<String> duasVariantes,
   required List<String> principais,
   required List<String> todas,
+  required int totalGenes,
+  required int livres,
+  required int portadores,
+  required int risco,
+  required int variantesRelevantesRaca,
   required String name,
   required AppAtivacaoModel ativacao,
   void Function(String path)? onComplete,
@@ -204,6 +209,7 @@ reportView(
         .toList(),
     maxConcurrent: 3,
   );
+  uma_variante.removeWhere((e) => e.isPlaceholder);
 
   change('Buscando resultados de duas variantes', false, 2);
   duas_variante = await concurrentPool(
@@ -240,6 +246,7 @@ reportView(
         .toList(),
     maxConcurrent: 3,
   );
+  duas_variante.removeWhere((e) => e.isPlaceholder);
   duas_variante.sort((a, b) => a.categoria.compareTo(b.categoria));
 
   change(
@@ -398,6 +405,11 @@ reportView(
     principais: principais_caracteristicas,
     todas: todas_doencas,
     tracos: tracos,
+    totalGenes: totalGenes,
+    livres: livres,
+    portadores: portadores,
+    risco: risco,
+    variantesRelevantesRaca: variantesRelevantesRaca,
   );
 
   stopwatch.stop();
@@ -409,7 +421,7 @@ reportView(
   final File file = File(path);
 
   await file.writeAsBytes(pdfBytes);
-  box.write('Resultado_v4_${ativacao.name}.pdf', path);
+  box.write('Resultado_v7_${ativacao.name}.pdf', path);
 
   if (onComplete != null) {
     onComplete(path);
