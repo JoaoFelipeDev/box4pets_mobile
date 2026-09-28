@@ -73,7 +73,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
       _certGenerated = true;
       _certPath = existing;
     }
-    final existingResult = box.read('Resultado_v7_${widget.ativacao.name}.pdf');
+    final existingResult = box.read('Resultado_v8_${widget.ativacao.name}.pdf');
     if (existingResult is String && existingResult.isNotEmpty) {
       _resultadoGenerated = true;
       _resultadoPath = existingResult;
@@ -184,7 +184,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
   }
 
   void _openShareOptions(TracosDoencasLoaded state) {
-    final existing = box.read('Resultado_v7_${widget.ativacao.name}.pdf');
+    final existing = box.read('Resultado_v8_${widget.ativacao.name}.pdf');
     if (existing == null) {
       _triggerShare(state);
       return;
@@ -250,7 +250,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
               label: 'Usar relatório anterior',
               onTap: () {
                 Navigator.pop(ctx);
-                final path = box.read('Resultado_v7_${widget.ativacao.name}.pdf');
+                final path = box.read('Resultado_v8_${widget.ativacao.name}.pdf');
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -1017,8 +1017,7 @@ class _GeneTile extends StatelessWidget {
                             intValue > 0 ? 900 + intValue * 30 : 0),
                     curve: Curves.easeOutCubic,
                     builder: (context, value, _) {
-                      final displayed = value.round().toString().padLeft(
-                          2, '0');
+                      final displayed = value.round().toString();
                       final compact = displayed.length >= 3;
                       return Text(
                         displayed,

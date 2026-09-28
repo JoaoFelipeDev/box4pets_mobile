@@ -260,7 +260,7 @@ Future<Uint8List> buildResultadoSaudePdf({
           pw.SizedBox(height: 16),
           _sectionTitle('Painel completo de doenças avaliadas', bold),
           pw.Text(
-            '${todasReais.length} variantes testadas em ${groupedTodas.length} categorias clínicas.',
+            '${groupedTodas.length} categorias clínicas avaliadas neste painel.',
             style: pw.TextStyle(font: regular, fontSize: 8.5, color: _muted),
           ),
           pw.SizedBox(height: 8),
