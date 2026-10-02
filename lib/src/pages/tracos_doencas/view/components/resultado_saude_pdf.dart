@@ -455,6 +455,17 @@ pw.Widget _achadoCard(
                             font: bold, fontSize: 10, color: _text),
                       ),
                     ),
+                    pw.SizedBox(width: 6),
+                    pw.Text(
+                      duasVariantes ? '2 cópias' : '1 cópia',
+                      style: pw.TextStyle(
+                        font: bold,
+                        fontSize: 8,
+                        color: duasVariantes
+                            ? PdfColor.fromInt(0xFFE85D75)
+                            : _orange,
+                      ),
+                    ),
                   ],
                 ),
                 pw.SizedBox(height: 2),
@@ -664,36 +675,29 @@ pw.Widget _tracosGroup({
         ),
         pw.SizedBox(height: 4),
         ...items.map((t) {
-          final genotype = (t.resultado ?? '').trim().isEmpty ? '—' : t.resultado!.trim();
-          final notable = !_isClear(t.resultado) && genotype != '—';
+          final genotype =
+              (t.resultado ?? '').trim().isEmpty ? '—' : t.resultado!.trim();
           return pw.Padding(
             padding: const pw.EdgeInsets.symmetric(vertical: 3.5),
             child: pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Expanded(
-                  flex: 4,
+                  flex: 5,
                   child: pw.Text(
                     t.tracos,
                     style: pw.TextStyle(font: medium, fontSize: 8, color: _text),
                   ),
                 ),
                 pw.Expanded(
-                  flex: 2,
+                  flex: 5,
                   child: pw.Text(
                     genotype,
                     style: pw.TextStyle(
                       font: semi,
                       fontSize: 8,
-                      color: notable ? _teal : _muted,
+                      color: _green,
                     ),
-                  ),
-                ),
-                pw.Expanded(
-                  flex: 5,
-                  child: pw.Text(
-                    _tracoInterpretacao(t),
-                    style: pw.TextStyle(font: regular, fontSize: 7.5, color: _muted),
                   ),
                 ),
               ],
@@ -703,19 +707,6 @@ pw.Widget _tracosGroup({
       ],
     ),
   );
-}
-
-String _tracoInterpretacao(ListTracosPdf t) {
-  final result = (t.resultado ?? '').trim();
-  if (_isClear(result)) {
-    return t.gene.trim().isEmpty
-        ? 'Não portador.'
-        : 'Não portador${t.gene.trim().isEmpty ? '.' : ' — ${t.gene}.'}';
-  }
-  if (result.contains('/') || result.contains(' ')) {
-    return t.gene.trim().isEmpty ? 'Resultado: $result.' : 'Resultado $result (${t.gene}).';
-  }
-  return result;
 }
 
 String _resultadoHumano(String? raw) {

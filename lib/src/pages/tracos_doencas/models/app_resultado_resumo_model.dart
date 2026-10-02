@@ -15,19 +15,41 @@ class AppResultadoResumoModel {
   List<String> raca;
   List<String> todas_doencas_geneticas_avaliadas;
 
-  /// Valor bruto do campo "Total Genes" no Airtable. Ainda não é
-  /// preenchido em todos os registros; quando nulo, calculamos o
-  /// total como a soma dos 3 campos de contagem por gene.
+  /// Valor bruto do campo "Total Genes" no Airtable.
   int? total_genes;
 
-  /// Total de genes analisados no nível de gene (não de marcador/doença).
-  /// Usa o campo "Total Genes" quando disponível; caso contrário soma
-  /// sem alteração + uma variante + duas variantes.
-  int get totalGenes =>
-      total_genes ??
-      (genes_sem_alteracao +
-          gene_com_uma_variante_detectada +
-          gene_com_duas_variante_detectada);
+  /// Painel canino: 222 registros no catálogo menos Nenhuma01/Nenhuma02.
+  /// Livres = painel − 1 cópia − 2 cópias. O recorte por raça fica só
+  /// em [doencasImportantesDaRaca].
+  static const int painelGenesCanino = 220;
+
+  static bool _isFelino(String? especie) =>
+      (especie ?? '').toLowerCase() == 'felina';
+
+  int get _somaTresCampos =>
+      genes_sem_alteracao +
+      gene_com_uma_variante_detectada +
+      gene_com_duas_variante_detectada;
+
+  /// Total exibido no app e no PDF. Cão: sempre 220. Gato: Airtable ou soma.
+  int totalGenesAnalisados({String? especie}) {
+    if (_isFelino(especie)) {
+      return total_genes ?? _somaTresCampos;
+    }
+    return painelGenesCanino;
+  }
+
+  /// Card verde. Cão: 220 − uma variante − duas variantes.
+  int genesLivres({String? especie}) {
+    if (_isFelino(especie)) return genes_sem_alteracao;
+    final livres = painelGenesCanino -
+        gene_com_uma_variante_detectada -
+        gene_com_duas_variante_detectada;
+    return livres < 0 ? 0 : livres;
+  }
+
+  /// Compatível com chamadas antigas (painel canino).
+  int get totalGenes => totalGenesAnalisados();
 
   int get doencasImportantesDaRaca =>
       principais_doencas_geneticas_da_raca.length;

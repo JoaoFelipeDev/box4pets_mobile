@@ -49,15 +49,39 @@ Future getDoencasGato(String id) async {
   return response.data['records'][0];
 }
 
-Future getTracos() async {
-  final Response<dynamic> response = await http.dio.get(
-    '/app_lista_tracos',
-    queryParameters: airtableCatalogParams({
+Future<List<dynamic>> _fetchCatalogPages(
+  String path, {
+  bool useView = true,
+}) async {
+  final all = <dynamic>[];
+  String? offset;
+  do {
+    final params = <String, dynamic>{
       'sort[0][field]': 'Categoria',
       'sort[0][direction]': 'asc',
-    }),
-  );
-  return response.data['records'];
+      if (offset != null) 'offset': offset,
+    };
+    final query = useView ? airtableCatalogParams(params) : params;
+    final response = await http.dio.get(
+      path,
+      queryParameters: query,
+      options: Options(
+        sendTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 20),
+      ),
+    );
+    all.addAll(response.data['records'] as List? ?? const []);
+    offset = response.data['offset'];
+  } while (offset != null);
+  return all;
+}
+
+Future getTracos() async {
+  try {
+    return await _fetchCatalogPages('/app_lista_tracos');
+  } catch (_) {
+    return _fetchCatalogPages('/app_lista_tracos', useView: false);
+  }
 }
 
 Future getTracosGatos() async {
@@ -94,8 +118,7 @@ Future<List<dynamic>> getTodasDoencas() async {
 
     // Atualiza o offset, se houver mais itens
     offset = response.data['offset'];
-    print('total : ${allRecords.length}');
-  } while (offset != null); // Continua enquanto houver um offset
+  } while (offset != null);
 
   return allRecords;
 }
@@ -148,6 +171,59 @@ Future<List<T>> concurrentPool<T>(List<Future<T> Function()> tasks,
   return results.cast<T>();
 }
 
+const _kSentinelIds = {'recjDN4RRnRMIm9Ec', 'rec0WXP3glPAbosku'};
+
+String _textoCampo(dynamic raw) {
+  if (raw == null) return '';
+  return raw.toString();
+}
+
+String _resultadoMarcador(Map<String, dynamic>? saude, dynamic marcador) {
+  final key = _textoCampo(marcador);
+  if (saude == null || key.isEmpty || key == '-') return '';
+  return _textoCampo(saude[key]);
+}
+
+ListDoencasPdfModel _doencaDoCatalogo(
+    Map record, Map<String, dynamic>? saude) {
+  final rawFields = record['fields'];
+  final fields = rawFields is Map
+      ? Map<String, dynamic>.from(rawFields)
+      : <String, dynamic>{};
+  return ListDoencasPdfModel(
+    marcador: _textoCampo(fields['Marcador']),
+    categoria: _textoCampo(fields['Categoria']),
+    doenca: _textoCampo(fields['Doença']),
+    gene: _textoCampo(fields['Gene']),
+    variante: _textoCampo(fields['Variante']),
+    resultado: _resultadoMarcador(saude, fields['Marcador']),
+  );
+}
+
+Future<Map<String, dynamic>?> _fetchSaudeCaoOnce(String caseId) async {
+  final response = await http.dio.get(
+      '/app_resultado_saude_cao?filterByFormula=app_ativacao="$caseId"');
+  final records = response.data['records'] as List? ?? [];
+  if (records.isEmpty) return null;
+  return Map<String, dynamic>.from(records.first['fields'] as Map);
+}
+
+List<ListDoencasPdfModel> _doencasPorIds(
+  List<String> ids,
+  Map<String, Map<String, dynamic>> catalogById,
+  Map<String, dynamic>? saude,
+) {
+  final out = <ListDoencasPdfModel>[];
+  for (final id in ids) {
+    if (_kSentinelIds.contains(id)) continue;
+    final record = catalogById[id];
+    if (record == null) continue;
+    final item = _doencaDoCatalogo(record, saude);
+    if (!item.isPlaceholder) out.add(item);
+  }
+  return out;
+}
+
 reportView(
   context, {
   required void Function(String change, bool close, int progress) change,
@@ -173,264 +249,103 @@ reportView(
   List<ListDoencasPdfModel> todas_doencas = [];
   List<ListTracosPdf> tracos = [];
 
-  change('Buscando resultados de uma variante', false, 1);
-  // Busca paralela para uma variante com limite de concorrência
-  uma_variante = await concurrentPool(
-    umaVariate
-        .map((element) => () async {
-              Map<String, dynamic> map = {};
-              if (ativacao.especie == "Felina") {
-                map = await getDoencasGato(element);
-              } else {
-                map = await getDoencas(element);
-              }
-              final Response<dynamic> response = await http.dio.get(
-                  '/app_resultado_saude_cao?filterByFormula=app_ativacao="${ativacao.Case_ID}"');
-              String result = "";
-              if ((response.data['records'] as List).isNotEmpty) {
-                var raw = response.data['records'][0]['fields']
-                    [map['fields']['Marcador']];
-                if (raw == null) {
-                  result = "";
-                } else if (raw is String) {
-                  result = raw;
-                } else {
-                  result = raw.toString();
-                }
-              }
-              return ListDoencasPdfModel(
-                  marcador: (map['fields']['Marcador'] ?? '').toString(),
-                  categoria: (map['fields']['Categoria'] ?? '').toString(),
-                  doenca: (map['fields']['Doença'] ?? '').toString(),
-                  gene: (map['fields']['Gene'] ?? '').toString(),
-                  variante: (map['fields']['Variante'] ?? '').toString(),
-                  resultado: result);
-            })
-        .toList(),
-    maxConcurrent: 3,
-  );
-  uma_variante.removeWhere((e) => e.isPlaceholder);
-
-  change('Buscando resultados de duas variantes', false, 2);
-  duas_variante = await concurrentPool(
-    duasVariantes
-        .map((element) => () async {
-              Map<String, dynamic> map = {};
-              if (ativacao.especie == "Felina") {
-                map = await getDoencasGato(element);
-              } else {
-                map = await getDoencas(element);
-              }
-              final Response<dynamic> response = await http.dio.get(
-                  '/app_resultado_saude_cao?filterByFormula=app_ativacao="${ativacao.Case_ID}"');
-              String result = "";
-              if ((response.data['records'] as List).isNotEmpty) {
-                var raw = response.data['records'][0]['fields']
-                    [map['fields']['Marcador']];
-                if (raw == null) {
-                  result = "";
-                } else if (raw is String) {
-                  result = raw;
-                } else {
-                  result = raw.toString();
-                }
-              }
-              return ListDoencasPdfModel(
-                  marcador: (map['fields']['Marcador'] ?? '').toString(),
-                  categoria: (map['fields']['Categoria'] ?? '').toString(),
-                  doenca: (map['fields']['Doença'] ?? '').toString(),
-                  gene: (map['fields']['Gene'] ?? '').toString(),
-                  variante: (map['fields']['Variante'] ?? '').toString(),
-                  resultado: result);
-            })
-        .toList(),
-    maxConcurrent: 3,
-  );
-  duas_variante.removeWhere((e) => e.isPlaceholder);
-  duas_variante.sort((a, b) => a.categoria.compareTo(b.categoria));
-
-  change(
-      'Buscando resultados de Principais doenças genéticas da raça', false, 3);
-  principais_caracteristicas = await concurrentPool(
-    principais
-        .map((element) => () async {
-              Map<String, dynamic> map = {};
-              if (ativacao.especie == "Felina") {
-                map = await getDoencasGato(element);
-              } else {
-                map = await getDoencas(element);
-              }
-              final Response<dynamic> response = await http.dio.get(
-                  '/app_resultado_saude_cao?filterByFormula=app_ativacao="${ativacao.Case_ID}"');
-              String result = "";
-              if ((response.data['records'] as List).isNotEmpty) {
-                var raw = response.data['records'][0]['fields']
-                    [map['fields']['Marcador']];
-                if (raw == null) {
-                  result = "";
-                } else if (raw is String) {
-                  result = raw;
-                } else {
-                  result = raw.toString();
-                }
-              }
-              return ListDoencasPdfModel(
-                  marcador: (map['fields']['Marcador'] ?? '').toString(),
-                  categoria: (map['fields']['Categoria'] ?? '').toString(),
-                  doenca: (map['fields']['Doença'] ?? '').toString(),
-                  gene: (map['fields']['Gene'] ?? '').toString(),
-                  variante: (map['fields']['Variante'] ?? '').toString(),
-                  resultado: result);
-            })
-        .toList(),
-    maxConcurrent: 3,
-  );
-  principais_caracteristicas.sort((a, b) => a.categoria.compareTo(b.categoria));
-
-  List<dynamic> resultTracos = [];
-  if (ativacao.especie == "Felina") {
-    resultTracos = await getTracosGatos();
-  } else {
-    resultTracos = await getTracos();
-  }
-  change('Buscando resultados de Traços', false, 4);
-  tracos = await concurrentPool(
-    resultTracos
-        .map((element) => () async {
-              final Response<dynamic> response = await http.dio.get(
-                  '/app_resultado_saude_cao?filterByFormula=app_ativacao="${ativacao.Case_ID}"');
-              String result = "";
-              if ((response.data['records'] as List).isNotEmpty) {
-                var raw = response.data['records'][0]['fields']
-                    [element['fields']['Marcador']];
-                if (raw == null) {
-                  result = "";
-                } else if (raw is String) {
-                  result = raw;
-                } else {
-                  result = raw.toString();
-                }
-              }
-              return ListTracosPdf(
-                  marcador: (element['fields']['Marcador'] ?? '').toString(),
-                  categoria: (element['fields']['Categoria'] ?? '').toString(),
-                  tracos: (element['fields']['Traço'] ?? '').toString(),
-                  gene: (element['fields']['Gene1'] ?? '').toString(),
-                  variante: (element['fields']['Variante'] ?? '').toString(),
-                  resultado: result);
-            })
-        .toList(),
-    maxConcurrent: 3,
-  );
-
-  int index = 5;
-  List<dynamic> result = ativacao.especie == "Felina"
+  change('Buscando resultados do exame', false, 5);
+  final saudeFields = await _fetchSaudeCaoOnce(ativacao.Case_ID);
+  change('Buscando catálogo de doenças', false, 20);
+  final catalogo = ativacao.especie == "Felina"
       ? await getTodasDoencasGato()
       : await getTodasDoencas();
-  change('Buscando resultados de Todas as doenças genéticas avaliadas', false,
-      index);
+  final catalogById = <String, Map<String, dynamic>>{};
+  for (final raw in catalogo) {
+    if (raw is Map<String, dynamic> && raw['id'] is String) {
+      catalogById[raw['id'] as String] = raw;
+    } else if (raw is Map && raw['id'] is String) {
+      catalogById[raw['id'] as String] = Map<String, dynamic>.from(raw);
+    }
+  }
 
-  // Busca paralela para todas as doenças com limite de concorrência
-  todas_doencas = await concurrentPool(
-    result
-        .map((element) => () async {
-              final Response<dynamic> response = await http.dio.get(
-                  '/app_resultado_saude_cao?filterByFormula=app_ativacao="${ativacao.Case_ID}"');
-              String resultValue = "";
-              if (ativacao.especie == "Felina") {
-                if ((response.data['records'] as List).isNotEmpty) {
-                  var raw = response.data['records'][0]['fields']
-                      [element['fields']['Marcador']];
-                  if (raw == null) {
-                    resultValue = "";
-                  } else if (raw is String) {
-                    resultValue = raw;
-                  } else {
-                    resultValue = raw.toString();
-                  }
-                }
-              } else {
-                index < 99 ? index += 1 : index = 99;
-                change(
-                    'Buscando resultados de Todas as doenças genéticas avaliadas',
-                    false,
-                    index);
-                if ((response.data['records'] as List).isNotEmpty &&
-                    element['fields']['Marcador'] != null &&
-                    element['fields']['Marcador'] as String != '-') {
-                  var raw = response.data['records'][0]['fields']
-                      [element['fields']['Marcador']];
-                  if (raw == null) {
-                    resultValue = "";
-                  } else if (raw is String) {
-                    resultValue = raw;
-                  } else {
-                    resultValue = raw.toString();
-                  }
-                }
-              }
-              if ((response.data['records'] as List).isNotEmpty) {
-                var raw = response.data['records'][0]['fields']
-                    [element['fields']['Marcador']];
-                if (raw == null) {
-                  resultValue = "";
-                } else if (raw is String) {
-                  resultValue = raw;
-                } else {
-                  resultValue = raw.toString();
-                }
-              }
-              return ListDoencasPdfModel(
-                  marcador: (element['fields']['Marcador'] ?? '').toString(),
-                  categoria: (element['fields']['Categoria'] ?? '').toString(),
-                  doenca: (element['fields']['Doença'] ?? '').toString(),
-                  gene: (element['fields']['Gene'] ?? '').toString(),
-                  variante: (element['fields']['Variante'] ?? '').toString(),
-                  resultado: resultValue);
-            })
-        .toList(),
-    maxConcurrent: 3,
-  );
+  change('Montando listas do relatório', false, 45);
+  uma_variante = _doencasPorIds(umaVariate, catalogById, saudeFields);
+  duas_variante = _doencasPorIds(duasVariantes, catalogById, saudeFields);
+  duas_variante.sort((a, b) => a.categoria.compareTo(b.categoria));
+  principais_caracteristicas =
+      _doencasPorIds(principais, catalogById, saudeFields);
+  principais_caracteristicas.sort((a, b) => a.categoria.compareTo(b.categoria));
+
+  change('Buscando traços', false, 65);
+  List<dynamic> resultTracos = const [];
+  try {
+    resultTracos = ativacao.especie == "Felina"
+        ? await getTracosGatos()
+        : await getTracos();
+  } catch (_) {}
+  tracos = resultTracos.map((element) {
+    final fields = Map<String, dynamic>.from(
+        (element['fields'] as Map?) ?? const {});
+    return ListTracosPdf(
+      marcador: _textoCampo(fields['Marcador']),
+      categoria: _textoCampo(fields['Categoria']),
+      tracos: _textoCampo(fields['Traço']),
+      gene: _textoCampo(fields['Gene1']),
+      variante: _textoCampo(fields['Variante']),
+      resultado: _resultadoMarcador(saudeFields, fields['Marcador']),
+    );
+  }).toList();
+
+  change('Montando todas as doenças avaliadas', false, 80);
+  try {
+    for (final raw in catalogo) {
+      if (raw is! Map) continue;
+      final item = _doencaDoCatalogo(raw, saudeFields);
+      if (!item.isPlaceholder && item.marcador != '-') {
+        todas_doencas.add(item);
+      }
+    }
+  } catch (_) {}
 
   change('Montando o relatório', false, 95);
-  final ByteData image =
-      await rootBundle.load('assets/images/logoB4p_centralizado.png');
-  final pdfBytes = await buildResultadoSaudePdf(
-    logoBytes: image.buffer.asUint8List(),
-    name: name,
-    ativacao: ativacao,
-    user: user,
-    umaVariante: uma_variante,
-    duasVariante: duas_variante,
-    principais: principais_caracteristicas,
-    todas: todas_doencas,
-    tracos: tracos,
-    totalGenes: totalGenes,
-    livres: livres,
-    portadores: portadores,
-    risco: risco,
-    variantesRelevantesRaca: variantesRelevantesRaca,
-  );
-
-  stopwatch.stop();
-  print(
-      'Tempo total para gerar PDF: \x1B[32m${stopwatch.elapsedMilliseconds} ms (${(stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(2)} s)\x1B[0m');
-  change('Finalizando documento.', true, 99);
-  final String dir = (await getApplicationDocumentsDirectory()).path;
-  final String path = '$dir/Resultado_${ativacao.name}.pdf';
-  final File file = File(path);
-
-  await file.writeAsBytes(pdfBytes);
-  box.write('Resultado_v8_${ativacao.name}.pdf', path);
-
-  if (onComplete != null) {
-    onComplete(path);
-  } else {
-    material.Navigator.of(context).push(
-      material.MaterialPageRoute(
-        builder: (_) => PdfViwerPage(path: path),
-      ),
+  try {
+    final ByteData image =
+        await rootBundle.load('assets/images/logoB4p_centralizado.png');
+    final pdfBytes = await buildResultadoSaudePdf(
+      logoBytes: image.buffer.asUint8List(),
+      name: name,
+      ativacao: ativacao,
+      user: user,
+      umaVariante: uma_variante,
+      duasVariante: duas_variante,
+      principais: principais_caracteristicas,
+      todas: todas_doencas,
+      tracos: tracos,
+      totalGenes: totalGenes,
+      livres: livres,
+      portadores: portadores,
+      risco: risco,
+      variantesRelevantesRaca: variantesRelevantesRaca,
     );
+
+    stopwatch.stop();
+    print(
+        'Tempo total para gerar PDF: ${stopwatch.elapsedMilliseconds} ms');
+    change('Finalizando documento.', true, 99);
+    final String dir = (await getApplicationDocumentsDirectory()).path;
+    final String path = '$dir/Resultado_${ativacao.name}.pdf';
+    final File file = File(path);
+
+    await file.writeAsBytes(pdfBytes);
+    box.write('Resultado_v10_${ativacao.name}.pdf', path);
+
+    if (onComplete != null) {
+      onComplete(path);
+    } else {
+      material.Navigator.of(context).push(
+        material.MaterialPageRoute(
+          builder: (_) => PdfViwerPage(path: path),
+        ),
+      );
+    }
+    change('', true, 0);
+  } catch (_) {
+    change('Erro ao montar o relatório', true, 0);
   }
-  change('', true, 0);
 }

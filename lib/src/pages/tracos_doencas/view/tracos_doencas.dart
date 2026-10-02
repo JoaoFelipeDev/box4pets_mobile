@@ -73,7 +73,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
       _certGenerated = true;
       _certPath = existing;
     }
-    final existingResult = box.read('Resultado_v8_${widget.ativacao.name}.pdf');
+    final existingResult = box.read('Resultado_v10_${widget.ativacao.name}.pdf');
     if (existingResult is String && existingResult.isNotEmpty) {
       _resultadoGenerated = true;
       _resultadoPath = existingResult;
@@ -101,8 +101,9 @@ class _TracosDoencasState extends State<TracosDoencas> {
       principais: state.tracosDoencas.principais_doencas_geneticas_da_raca,
       todas: state.tracosDoencas.todas_doencas_geneticas_avaliadas,
       umaVariate: state.tracosDoencas.uma_variante,
-      totalGenes: state.tracosDoencas.totalGenes,
-      livres: state.tracosDoencas.genes_sem_alteracao,
+      totalGenes: state.tracosDoencas
+          .totalGenesAnalisados(especie: widget.ativacao.especie),
+      livres: state.tracosDoencas.genesLivres(especie: widget.ativacao.especie),
       portadores: state.tracosDoencas.gene_com_uma_variante_detectada,
       risco: state.tracosDoencas.gene_com_duas_variante_detectada,
       variantesRelevantesRaca: state.tracosDoencas.doencasImportantesDaRaca,
@@ -184,7 +185,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
   }
 
   void _openShareOptions(TracosDoencasLoaded state) {
-    final existing = box.read('Resultado_v8_${widget.ativacao.name}.pdf');
+    final existing = box.read('Resultado_v10_${widget.ativacao.name}.pdf');
     if (existing == null) {
       _triggerShare(state);
       return;
@@ -250,7 +251,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
               label: 'Usar relatório anterior',
               onTap: () {
                 Navigator.pop(ctx);
-                final path = box.read('Resultado_v8_${widget.ativacao.name}.pdf');
+                final path = box.read('Resultado_v10_${widget.ativacao.name}.pdf');
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -377,8 +378,9 @@ class _TracosDoencasState extends State<TracosDoencas> {
       principais: state.tracosDoencas.principais_doencas_geneticas_da_raca,
       todas: state.tracosDoencas.todas_doencas_geneticas_avaliadas,
       umaVariate: state.tracosDoencas.uma_variante,
-      totalGenes: state.tracosDoencas.totalGenes,
-      livres: state.tracosDoencas.genes_sem_alteracao,
+      totalGenes: state.tracosDoencas
+          .totalGenesAnalisados(especie: widget.ativacao.especie),
+      livres: state.tracosDoencas.genesLivres(especie: widget.ativacao.especie),
       portadores: state.tracosDoencas.gene_com_uma_variante_detectada,
       risco: state.tracosDoencas.gene_com_duas_variante_detectada,
       variantesRelevantesRaca: state.tracosDoencas.doencasImportantesDaRaca,
@@ -510,7 +512,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
             child: _buildSectionTitle(
               'Análise do DNA',
-              'Total de ${state.tracosDoencas.totalGenes} genes analisados',
+              'Total de ${state.tracosDoencas.totalGenesAnalisados(especie: widget.ativacao.especie)} genes analisados',
             ),
           ),
           Padding(
@@ -906,7 +908,7 @@ class _TracosDoencasState extends State<TracosDoencas> {
     final t = state.tracosDoencas;
     final tiles = [
       _GeneTileData(
-        value: '${t.genes_sem_alteracao}',
+        value: '${t.genesLivres(especie: widget.ativacao.especie)}',
         label: 'Livres de variantes/mutações',
         icon: Icons.check_circle_rounded,
         color: const Color(0xFF22C55E),
